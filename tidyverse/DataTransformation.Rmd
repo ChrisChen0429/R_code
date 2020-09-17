@@ -21,10 +21,14 @@ library(Lahman)
 ```{r}
 flights <- tibble(flights)
 class(flights)
+str(flights)
 ```
 
 
 ### Filter
+
+near() is a safe wat of compare if two vector of floading point numbers are equal.
+
 #### Examples
 ```{r}
 # Logical operators 
@@ -62,6 +66,7 @@ flights %>% filter(hour<=6)%>% select(1:5,time_hour) %>% head(3)
 
 #Another useful dplyr filtering helper is between(). What does it do? Can you use it to simplify the code needed to answer the previous challenges?
 flights %>% filter(between(hour,0,6))%>% select(1:5,time_hour) %>% head(3)
+filter(flights, between(month, 7, 9))
 
 
 #How many flights have a missing dep_time? What other variables are missing? What might these rows represent?
@@ -74,19 +79,295 @@ FALSE & NA
 ```
 
 
-### Select
-
 ### Order/Arrange
+#### Examples
+```{r}
+flights %>% arrange(year,month,day)
+
+flights %>% arrange(desc(dep_delay))%>% select(1:5,dep_delay) %>% head(3)
+
+
+# Missing values are always sorted at the end (no matter desc or asec)
+df %>% arrange(x)
+df %>% arrange(desc(x))
+
+```
+#### Exercises
+
+```{r}
+#How could you use arrange() to sort all missing values to the start? (Hint: use is.na()).
+flights %>% arrange(desc(is.na(.)))
+flights %>% arrange(desc(is.na(dep_time)))
+
+#Sort flights to find the most delayed flights. Find the flights that left earliest.
+flights %>% arrange(desc(dep_delay)) %>% slice(1)
+flights %>% arrange(dep_delay)%>% slice(1)
+
+#Sort flights to find the fastest (highest speed) flights.
+flights %>% arrange(desc(distance/air_time)) %>% top_n(1)
+
+flights %>% mutate(speed=distance/air_time) %>%arrange(desc(speed))  %>% top_n(1)
+
+#Which flights travelled the farthest? Which travelled the shortest?
+flights %>% arrange()
+```
+
+### slice
+#### Examples
+```{r}
+# first the first 5 results
+flights %>% top_n(5)
+flights %>% head(5)
+
+# find the first 10 results but obmit the first three
+flights %>% slice(4:10)
+flights %>% filter(between(row_number(), 4, 10))
+
+# find the first 1e-05 records
+flights %>% top_frac(1e-05)
+```
+
+### Select
+Tidyverse selections implement a dialect of R where operators make it easy to select variables:
+
+* : for selecting a range of consecutive variables.
+
+* ! for taking the complement of a set of variables.
+
+* & and | for selecting the intersection or the union of two sets of variables.
+
+* c() for combining selections.
+
+In addition, you can use *selection helpers*. Some helpers select specific columns:
+
+* everything(): Matches all variables.
+
+```{r}
+## move some colums to the begining
+select(flights, time_hour, air_time, everything())
+```
+
+
+* last_col(): Select last variable, possibly with an offset.
+
+These *helpers* select variables by matching patterns in their names:
+
+* starts_with(): Starts with a prefix.
+
+* ends_with(): Ends with a suffix.
+
+* contains(): Contains a literal string.
+
+* matches(): Matches a regular expression.
+
+* num_range(): Matches a numerical range like x01, x02, x03.
+
+These *helpers* select variables from a character vector:
+
+* all_of(): Matches variable names in a character vector. All names must be present, otherwise an out-of-bounds error is thrown.
+
+* any_of(): Same as all_of(), except that no error is thrown for names that don't exist.
+
+This *helper* selects variables with a function:
+
+* where(): Applies a function to all variables and selects those for which the function returns TRUE.
+```{r}
+flights %>% select(where(is.character))
+
+iris %>% select(where(~is.numeric(.x) && mean(.x) > 3.5))
+```
+
+#### Examples
+```{r}
+flights %>% select(year, month, day)
+flights %>% select(year:day)
+flights %>% select(-(year:day))
+```
+
+#### Exercises
+```{r}
+#select dep_time, dep_delay, arr_time, and arr_delay from flights.
+flights %>% select(dep_time, dep_delay, arr_time, arr_delay)
+select(flights, matches("^(dep|arr)_(time|delay)$"))
+select(flights, starts_with("dep_"), starts_with("arr_"))
+variables <- c("dep_time", "dep_delay", "arr_time", "arr_delay")
+select(flights, !!variables)
+
+#What happens if you include the name of a variable multiple times in a select() call?
+flights %>% select(dep_time, dep_time)
+
+#What does the one_of() function do? Why might it be helpful in conjunction with this vector?
+vars <- c("year", "month", "day", "dep_delay", "arr_delay")
+flights %>% select(one_of(vars))
+
+
+#Does the result of running the following code surprise you? How do the select helpers deal with case by default? How can you change that default?
+select(flights, contains("TIME"))
+select(flights, contains("TIME", ignore.case = FALSE))
+select(flights, matches(".TIME."))
+```
 
 ### mutate
 
-### group by
+* +, -, *, /, ^,%/% (integer division) and %% (remainder), log(), etc., for their usual mathematical meanings
+
+* lead(), lag()
+```{r}
+lag(1:5)
+lag(1:5, n = 2)
+lag(1:5, default = 0)
+lead(1:5)
+lead(1:5,n=2)
+lead(1:5, default = 6)
+```
 
 
-### Join/Merge
+* dense_rank(), min_rank(), percent_rank(), row_number(), cume_dist(), ntile()
+```{r}
+x <- c(5, 1, 3, 2, 2, NA)
+row_number(x)
+min_rank(x)
+dense_rank(x)
+percent_rank(x)
+cume_dist(x)
+
+#a rough rank, which breaks the input vector into n buckets
+ntile(x, 2)
+ntile(1:8, 3)
+```
+
+
+* cumsum(), cummean(), cummin(), cummax(), cumany(), cumall()
+```{r}
+cumall(c(1,2,3,4,0))
+cumany(c(1,2,3,4,0))
+```
+
+* na_if(), coalesce()
+```{r}
+# Use a single value to replace all missing values
+x <- sample(c(1:5, NA, NA, NA))
+coalesce(x, 0L)
+
+# Or match together a complete vector from missing pieces
+y <- c(1, 2, NA, NA, 5)
+z <- c(NA, NA, 3, 4, 5)
+coalesce(y, z)
+
+# Supply lists by with dynamic dots
+vecs <- list(
+  c(1, 2, NA, NA, 5),
+  c(NA, NA, 3, 4, 5)
+)
+coalesce(!!!vecs)
+
+```
+
+
+* if_else(), recode(), case_when()
+```{r}
+x <- c(-5:5, NA)
+if_else(x < 0, NA_integer_, x)
+if_else(x < 0, "negative", "positive", "missing")
+
+# Unlike ifelse, if_else preserves types
+x <- factor(sample(letters[1:5], 10, replace = TRUE))
+ifelse(x %in% c("a", "b", "c"), x, factor(NA))
+if_else(x %in% c("a", "b", "c"), x, factor(NA))
+# Attributes are taken from the `true` vector,
+
+x <- 1:50
+case_when(
+  x %% 35 == 0 ~ "fizz buzz",
+  x %% 5 == 0 ~ "fizz",
+  x %% 7 == 0 ~ "buzz",
+  TRUE ~ as.character(x)
+)
+
+
+char_vec <- sample(c("a", "b", "c"), 10, replace = TRUE)
+recode(char_vec, a = "Apple")
+recode(char_vec, a = "Apple", b = "Banana")
+```
+
+#### Examples
+```{r}
+(flights_sml <- flights %>% select( 
+  year:day, 
+  ends_with("delay"), 
+  distance, 
+  air_time) %>% mutate(
+  gain = dep_delay - arr_delay,
+  speed = distance / air_time * 60,
+  gain_per_hour = gain / air_time * 60))
+
+## only keep the mutated variables
+flights %>% transmute(gain = dep_delay - arr_delay,
+  hours = air_time / 60,
+  gain_per_hour = gain / hours)
+```
+
+#### Exercises
+```{r}
+#Currently dep_time and sched_dep_time are convenient to look at, but hard to compute with because they’re not really continuous numbers. Convert them to a more convenient representation of number of minutes since midnight.
+time2mins <- function(x) {
+  (x %/% 100 * 60 + x %% 100) %% 1440
+}
+flights_times <- mutate(flights,
+  dep_time_mins = time2mins(dep_time),
+  sched_dep_time_mins = time2mins(sched_dep_time)
+)
+# view only relevant columns
+select(
+  flights_times, dep_time, dep_time_mins, sched_dep_time,
+  sched_dep_time_mins
+)
+
+#Compare dep_time, sched_dep_time, and dep_delay. How would you expect those three numbers to be related?
+flights_delayed <- mutate(flights, 
+                          dep_delay_min_rank = min_rank(desc(dep_delay)),
+                          dep_delay_row_number = row_number(desc(dep_delay)),
+                          dep_delay_dense_rank = dense_rank(desc(dep_delay))
+                          )
+flights_delayed <- filter(flights_delayed, 
+                          !(dep_delay_min_rank > 10 | dep_delay_row_number > 10 |
+                              dep_delay_dense_rank > 10))
+flights_delayed <- arrange(flights_delayed, dep_delay_min_rank)
+
+select(flights_delayed, month, day, carrier, flight, dep_delay, 
+             dep_delay_min_rank, dep_delay_row_number, dep_delay_dense_rank)
+```
 
 
 ### Aggregrate/Summary
+#### Examples
+```{r}
+summarise(flights, delay = mean(dep_delay, na.rm = TRUE))
+
+flights %>% group_by( year, month, day) %>% summarise(delay = mean(dep_delay, na.rm = TRUE))
+```
+
+#### Exercises
 
 
-###
+
+### group by
+#### Examples
+#### Exercises
+
+
+### Join/Merge
+#### Examples
+#### Exercises
+
+### others
+
+```{r}
+rename(flights, tail_num = tailnum) %>% select(tail_num)
+```
+```{r}
+# replace all na
+df <- tibble(x = c(1, 2, NA), y = c("a", NA, "b"))
+df %>% replace_na(list(x = 0, y = "unknown"))
+```
+
