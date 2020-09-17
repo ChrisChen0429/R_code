@@ -9,6 +9,84 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(nycflights13)
+library(gapminder)
+library(Lahman)
+#tidyverse_update()
+```
+
 ## Data Transformation
+```{r}
+flights <- tibble(flights)
+class(flights)
+```
+
 
 ### Filter
+#### Examples
+```{r}
+# Logical operators 
+filter(flights, month == 1, day == 1) %>% head(5)
+
+filter(flights, month %in% c(11,12) & (dep_time >400 | sched_dep_time < 600) & day != 1)
+
+flights %>% filter(between(hour,0,6))%>% select(1:5,time_hour) %>% head(3)
+
+# Missing values
+df <- tibble(x = c(1, NA, 3))
+filter(df, x > 1)
+filter(df, is.na(x) | x > 1)
+```
+#### Exercises
+```{r}
+# Had an arrival delay of two or more hours
+flights %>% filter(arr_delay >=2) %>% head(3)
+
+# Flew to Houston (IAH or HOU)
+flights %>% filter(dest=="IAH" | dest=="HOU") %>% select(1:5,dest) %>% head(3)
+
+# Were operated by United, American, or Delta
+flights %>% filter(carrier %in% c("AA","UA","DL"))%>% select(1:5,carrier) %>% head(3)
+
+# Arrived more than two hours late, but didn’t leave late
+flights %>% filter(arr_delay>2 & dep_delay<=0)%>% select(1:5,dep_delay, arr_delay) %>% head(3)
+
+# Were delayed by at least an hour, but made up over 30 minutes in flight
+flights %>% filter(dep_delay>1 & air_time>30)%>% select(1:5,hour) %>% head(3)
+
+
+# Departed between midnight and 6am (inclusive)
+flights %>% filter(hour<=6)%>% select(1:5,time_hour) %>% head(3)
+
+#Another useful dplyr filtering helper is between(). What does it do? Can you use it to simplify the code needed to answer the previous challenges?
+flights %>% filter(between(hour,0,6))%>% select(1:5,time_hour) %>% head(3)
+
+
+#How many flights have a missing dep_time? What other variables are missing? What might these rows represent?
+flights %>% filter(is.na(dep_time))
+
+#Why is NA ^ 0 not missing? Why is NA | TRUE not missing? Why is FALSE & NA not missing? Can you figure out the general rule? (NA * 0 is a tricky counterexample!)
+NA^0
+NA*0
+FALSE & NA
+```
+
+
+### Select
+
+### Order/Arrange
+
+### mutate
+
+### group by
+
+
+### Join/Merge
+
+
+### Aggregrate/Summary
+
+
+###
