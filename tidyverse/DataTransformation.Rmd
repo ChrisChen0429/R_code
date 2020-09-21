@@ -788,6 +788,8 @@ flights %>%
 ```
 
 
+#### exercise
+
 #### set operation
 
 * intersect(x, y): return only observations in both x and y.
@@ -796,10 +798,4 @@ flights %>%
 
 * setdiff(x, y): return observations in x, but not in y.
 
-#### Examples
-#### Exercises
-
-```{r}
-
-```
 

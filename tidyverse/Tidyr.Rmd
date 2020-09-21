@@ -1,0 +1,274 @@
+---
+title: "Tidyr"
+author: "Yi Chen"
+date: "9/21/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Tidy Data & Relational Data
+```{r warning=FALSE}
+library(tidyverse)
+library(nycflights13)
+```
+
+
+### tibble
+```{r}
+iris <- as_tibble(iris)
+
+
+tibble(
+  `:)` = "smile", 
+  ` ` = "space",
+  `2000` = "number"
+)
+
+
+tribble(
+  ~x, ~y, ~z,
+  #--|--|----
+  "a", 2, 3.6,
+  "b", 1, 8.5
+)
+
+df <- tibble(
+  x = runif(5),
+  y = rnorm(5)
+)
+
+df %>% .$x
+df %>% .[["x"]]
+df %>% .[[1]]
+```
+
+
+
+### tidy data
+
+#### longer
+```{r}
+table4a
+(table4a %>%
+  pivot_longer(c(`1999`, `2000`), names_to = "year", values_to = "cases",values_drop_na = TRUE))
+
+```
+
+#### wider
+```{r}
+table2
+(table2 %>%
+    pivot_wider(names_from = type, values_from = count))
+```
+
+#### separate 
+```{r}
+table3
+table3 %>% separate(rate,into = c("case","population"),sep = "/",convert = TRUE) ## convert into better format
+
+table3 %>% 
+  separate(year, into = c("century", "year"), sep = 2) ## select two digit
+
+tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>%
+  separate(x, c("one", "two", "three"), extra = "drop")
+
+tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>%
+  separate(x, c("one", "two", "three"), extra = "merge")
+
+tibble(x = c("a,b,c", "d,e", "f,g,i")) %>%
+  separate(x, c("one", "two", "three"), fill = "left")
+
+
+#The function extract() uses a regular expression to specify groups in character vector and split that single character vector into multiple columns. This is more flexible than separate() because it does not require a common separator or specific column positions.
+tibble(x = c("X1", "X2", "Y1", "Y2")) %>%
+  extract(x, c("variable", "id"), regex = "([A-Z])([0-9])")
+```
+
+#### Unite
+```{r}
+table5
+table5 %>% unite(date, century, year, sep = "")
+
+```
+
+#### missing
+```{r}
+stocks <- tibble(
+  year   = c(2015, 2015, 2015, 2015, 2016, 2016, 2016),
+  qtr    = c(   1,    2,    3,    4,    2,    3,    4),
+  return = c(1.88, 0.59, 0.35,   NA, 0.92, 0.17, 2.66)
+)
+stocks %>% 
+  complete(year, qtr) ## find the explicit and implicit missing.
+
+
+(treatment <- tribble(
+  ~ person,           ~ treatment, ~response,
+  "Derrick Whitmore", 1,           7,
+  NA,                 2,           10,
+  NA,                 3,           9,
+  "Katherine Burke",  1,           4
+))
+
+# fill() takes a set of columns where you want missing values to be replaced by the most recent non-missing value (sometimes called last observation carried forward).
+treatment %>% 
+  fill(person)
+```
+
+### relational data
+
+![database structure](structure.png)
+
+
+#### mutate join
+```{r}
+flights2 <- flights %>% 
+  select(year:day, hour, origin, dest, tailnum, carrier)
+
+flights2 %>%
+  select(-origin, -dest) %>% 
+  left_join(airlines, by = "carrier") %>%
+  top_n(5)
+
+
+## same as
+flights2 %>%
+  select(-origin, -dest) %>% 
+  mutate(name = airlines$name[match(carrier, airlines$carrier)]) %>%
+  top_n(5)
+
+# The default, by = NULL, uses all variables that appear in both tables, the so called natural join.
+flights2 %>% 
+  left_join(weather)%>%
+  top_n(5)
+
+#  A named character vector: by = c("a" = "b"). This will match variable a in table x to variable b in table y.
+flights2 %>% 
+  left_join(airports, c("dest" = "faa"))
+```
+
+
+#### filter join
+
+* semi_join(x, y) keeps all observations in x that have a match in y.
+
+* anti_join(x, y) drops all observations in x that have a match in y.
+
+```{r}
+top_dest <- flights %>%
+  count(dest, sort = TRUE) %>%
+  head(10)
+
+flights %>% 
+  filter(dest %in% top_dest$dest)%>%
+  head(10)
+
+flights %>% 
+  semi_join(top_dest)%>%
+  head(10)
+
+flights %>%
+  anti_join(planes, by = "tailnum") %>%
+  count(tailnum, sort = TRUE)%>%
+  head(10)
+```
+
+
+#### exercise
+```{r}
+#Compute the average delay by destination, then join on the airports data frame so you can show the spatial distribution of delays. 
+flights %>% group_by(dest) %>% summarise(average_delay = mean(arr_delay,na.rm=TRUE)) %>% inner_join(airports,by=c('dest'='faa')) %>% top_n(5)
+
+#Add the location of the origin and destination (i.e. the lat and lon) to flights.
+airport_location <- airports %>% select(faa,lat,lon)
+
+flights %>% select(year:day, hour, origin, dest) %>%
+  left_join(airport_location,by=c('origin'='faa')) %>%
+  left_join(airport_location,by=c('dest'='faa'),suffix = c("_origin", "_dest")) %>%
+  head(5)
+
+#Is there a relationship between the age of a plane and its delays?
+(plane_cohorts <- inner_join(flights,
+            select(planes,tailnum,plane_year=year),
+            by="tailnum") %>%
+  mutate(age=year - plane_year) %>%
+  filter(!is.na(age)) %>% 
+  mutate(age = ifelse(age>25,25,age)) %>% #truncate the age to 25
+  group_by(age) %>%
+  summarise(dep_delay_mean = mean(dep_delay,na.rm = TRUE),
+            dep_delay_sd = sd(dep_delay,na.rm = TRUE),
+            arr_delay_mean = mean(arr_delay,na.rm = TRUE),
+            arr_delay_sd = sd(arr_delay,na.rm = TRUE)) %>%
+  arrange(age) %>%
+  head(10))
+
+cor(plane_cohorts$age,plane_cohorts$dep_delay_mean)
+cor(plane_cohorts$age,plane_cohorts$arr_delay_mean)
+
+#What weather conditions make it more likely to see a delay?
+flight_weather <- flights %>% inner_join(weather) %>%
+  group_by(precip) %>%
+  summarise(delay = mean(dep_delay, na.rm = TRUE)) 
+flight_weather%>% 
+  head(5)
+cor(flight_weather$precip,flight_weather$delay)
+
+#What happened on June 13 2013? Display the spatial pattern of delays, and then use Google to cross-reference with the weather.
+flights %>% filter(year==2013,month==6,day==13) %>%
+  group_by(dest) %>% 
+  summarise(delay = mean(arr_delay,na.rm=TRUE)) %>%
+  inner_join(airports,by=c('dest'='faa')) 
+
+
+
+# What does it mean for a flight to have a missing tailnum? What do the tail numbers that don’t have a matching record in planes have in common? (Hint: one variable explains ~90% of the problems.)
+flights %>% anti_join(planes,by="tailnum") %>%
+  count(carrier,sort = T) %>%
+  mutate(percenage = n/sum(n))
+
+## most are MQ or AA
+
+
+
+#Filter flights to only show flights with planes that have flown at least 100 flights.
+flights %>% semi_join(
+  flights %>% filter(!is.na(tailnum)) %>%
+  count(tailnum) %>% filter(n>100),
+  by='tailnum')
+
+
+#Find the 48 hours (over the course of the whole year) that have the worst delays. Cross-reference it with the weather data. Can you see any patterns?
+worst_hours <- flights %>%
+  mutate(hour = sched_dep_time %/% 100) %>%
+  group_by(origin, year, month, day, hour) %>%
+  summarise(dep_delay = mean(dep_delay, na.rm = TRUE)) %>%
+  arrange(desc(dep_delay)) %>%
+  slice(1:48)
+weather_most_delayed <- semi_join(weather, worst_hours, 
+                                  by = c("origin", "year",
+                                         "month", "day", "hour"))
+select(weather_most_delayed, temp, wind_speed, precip) %>%
+  print(n = 48)
+
+
+# find all distinct airline and number of plane that flow more than one airline
+flights %>% 
+  filter(!is.na(tailnum)) %>% 
+  distinct(tailnum, carrier) %>% 
+  count(tailnum) %>%
+  filter(n>1) %>%
+  nrow()
+```
+
+
+
+#### set operation
+
+* intersect(x, y): return only observations in both x and y.
+
+* union(x, y): return unique observations in x and y.
+
+* setdiff(x, y): return observations in x, but not in y.
