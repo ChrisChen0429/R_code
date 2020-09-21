@@ -174,7 +174,7 @@ This *helper* selects variables with a function:
 ```{r}
 flights %>% select(where(is.character))
 
-iris %>% select(where(~is.numeric(.x) && mean(.x) > 3.5))
+iris %>% select(where(~is.numeric(.x) && mean(.x) > 3.5)) %>% head(5)
 ```
 
 #### Examples
@@ -558,11 +558,6 @@ flights %>%
 
 vignette("window-functions")
 
-
-### Join/Merge
-#### Examples
-#### Exercises
-
 ### others
 
 ```{r}
@@ -573,3 +568,238 @@ rename(flights, tail_num = tailnum) %>% select(tail_num)
 df <- tibble(x = c(1, 2, NA), y = c("a", NA, "b"))
 df %>% replace_na(list(x = 0, y = "unknown"))
 ```
+
+
+##### Duplicate
+```{r}
+flights %>% distinct(year,month,day,.keep_all = T)
+```
+
+
+
+
+### window function
+```{r}
+batting <- Lahman::Batting %>%
+  as_tibble() %>%
+  select(playerID, yearID, teamID, G, AB:H) %>%
+  arrange(playerID, yearID, teamID) %>%
+  semi_join(Lahman::AwardsPlayers, by = "playerID")
+
+players <- batting %>% group_by(playerID)
+```
+```{r}
+# For each player, find the two years with most hits
+filter(players, min_rank(desc(H)) <= 2 & H > 0)
+# Within each player, rank each year by the number of games played
+mutate(players, G_rank = min_rank(G))
+
+# For each player, find every year that was better than the previous year
+filter(players, G > lag(G))
+# For each player, compute avg change in games played per year
+mutate(players, G_change = (G - lag(G)) / (yearID - lag(yearID)))
+
+# For each player, find all years where they played more games than they did on average
+filter(players, G > mean(G))
+# For each, player compute a z score based on number of games played
+mutate(players, G_z = (G - mean(G)) / sd(G))
+```
+
+
+There are five main families of window functions. Two families are unrelated to aggregation functions:
+
+* Ranking and ordering functions: row_number(), min_rank(), dense_rank(), cume_dist(), percent_rank(), and ntile(). These functions all take a vector to order by, and return various types of ranks.
+
+* Offsets lead() and lag() allow you to access the previous and next values in a vector, making it easy to compute differences and trends.
+
+The other three families are variations on familiar aggregate functions:
+
+* Cumulative aggregates: cumsum(), cummin(), cummax() (from base R), and cumall(), cumany(), and cummean() (from dplyr).
+
+* Rolling aggregates operate in a fixed width window. You won’t find them in base R or in dplyr, but there are many implementations in other packages, such as RcppRoll.
+
+* Recycled aggregates, where an aggregate is repeated to match the length of the input. These are not needed in R because vector recycling automatically recycles aggregates where needed. They are important in SQL, because the presence of an aggregation function usually tells the database to return only one row per group.
+
+```{r}
+#These are useful if you want to select (for example) the top 10% of records within each group. For example:
+filter(players, cume_dist(desc(G)) < 0.1)
+```
+
+
+
+### tibble
+```{r}
+iris <- as_tibble(iris)
+
+
+tibble(
+  `:)` = "smile", 
+  ` ` = "space",
+  `2000` = "number"
+)
+
+
+tribble(
+  ~x, ~y, ~z,
+  #--|--|----
+  "a", 2, 3.6,
+  "b", 1, 8.5
+)
+
+df <- tibble(
+  x = runif(5),
+  y = rnorm(5)
+)
+
+df %>% .$x
+df %>% .[["x"]]
+df %>% .[[1]]
+```
+
+
+
+### tidy data
+
+#### longer
+```{r}
+table4a
+(table4a %>%
+  pivot_longer(c(`1999`, `2000`), names_to = "year", values_to = "cases",values_drop_na = TRUE))
+
+```
+
+#### wider
+```{r}
+table2
+(table2 %>%
+    pivot_wider(names_from = type, values_from = count))
+```
+
+#### separate 
+```{r}
+table3
+table3 %>% separate(rate,into = c("case","population"),sep = "/",convert = TRUE) ## convert into better format
+
+table3 %>% 
+  separate(year, into = c("century", "year"), sep = 2) ## select two digit
+
+tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>%
+  separate(x, c("one", "two", "three"), extra = "drop")
+
+tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>%
+  separate(x, c("one", "two", "three"), extra = "merge")
+
+tibble(x = c("a,b,c", "d,e", "f,g,i")) %>%
+  separate(x, c("one", "two", "three"), fill = "left")
+
+
+#The function extract() uses a regular expression to specify groups in character vector and split that single character vector into multiple columns. This is more flexible than separate() because it does not require a common separator or specific column positions.
+tibble(x = c("X1", "X2", "Y1", "Y2")) %>%
+  extract(x, c("variable", "id"), regex = "([A-Z])([0-9])")
+```
+
+#### Unite
+```{r}
+table5
+table5 %>% unite(date, century, year, sep = "")
+
+```
+
+#### missing
+```{r}
+stocks <- tibble(
+  year   = c(2015, 2015, 2015, 2015, 2016, 2016, 2016),
+  qtr    = c(   1,    2,    3,    4,    2,    3,    4),
+  return = c(1.88, 0.59, 0.35,   NA, 0.92, 0.17, 2.66)
+)
+stocks %>% 
+  complete(year, qtr) ## find the explicit and implicit missing.
+
+
+(treatment <- tribble(
+  ~ person,           ~ treatment, ~response,
+  "Derrick Whitmore", 1,           7,
+  NA,                 2,           10,
+  NA,                 3,           9,
+  "Katherine Burke",  1,           4
+))
+
+# fill() takes a set of columns where you want missing values to be replaced by the most recent non-missing value (sometimes called last observation carried forward).
+treatment %>% 
+  fill(person)
+```
+
+### relational data
+
+![database structure](structure.png)
+
+
+#### mutate join
+```{r}
+flights2 <- flights %>% 
+  select(year:day, hour, origin, dest, tailnum, carrier)
+
+flights2 %>%
+  select(-origin, -dest) %>% 
+  left_join(airlines, by = "carrier") %>%
+  top_n(5)
+
+
+## same as
+flights2 %>%
+  select(-origin, -dest) %>% 
+  mutate(name = airlines$name[match(carrier, airlines$carrier)]) %>%
+  top_n(5)
+
+# The default, by = NULL, uses all variables that appear in both tables, the so called natural join.
+flights2 %>% 
+  left_join(weather)%>%
+  top_n(5)
+
+#  A named character vector: by = c("a" = "b"). This will match variable a in table x to variable b in table y.
+flights2 %>% 
+  left_join(airports, c("dest" = "faa"))
+```
+
+
+#### filter join
+
+* semi_join(x, y) keeps all observations in x that have a match in y.
+
+* anti_join(x, y) drops all observations in x that have a match in y.
+
+```{r}
+top_dest <- flights %>%
+  count(dest, sort = TRUE) %>%
+  head(10)
+
+flights %>% 
+  filter(dest %in% top_dest$dest)%>%
+  head(10)
+
+flights %>% 
+  semi_join(top_dest)%>%
+  head(10)
+
+flights %>%
+  anti_join(planes, by = "tailnum") %>%
+  count(tailnum, sort = TRUE)%>%
+  head(10)
+```
+
+
+#### set operation
+
+* intersect(x, y): return only observations in both x and y.
+
+* union(x, y): return unique observations in x and y.
+
+* setdiff(x, y): return observations in x, but not in y.
+
+#### Examples
+#### Exercises
+
+```{r}
+
+```
+
