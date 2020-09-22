@@ -10,3 +10,81 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## DateTime
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(lubridate)
+library(nycflights13)
+
+today()
+now()
+```
+
+#### date time from string or number
+```{r}
+ymd("2017-01-31")
+mdy("January 31st, 2017")
+dmy("31-Jan-2017")
+ymd_hms("2017-01-31 20:11:59")
+mdy_hm("01/31/2017 08:01")
+
+ymd(20170131, tz = "UTC")
+
+
+flights %>% 
+  select(year, month, day, hour, minute) %>% 
+  mutate(departure = make_datetime(year, month, day, hour, minute))
+```
+
+```{r}
+datetime <- ymd_hms("2016-07-08 12:34:56")
+
+year(datetime)
+month(datetime)
+# day of the month
+mday(datetime)
+# day of the year
+yday(datetime)
+# day of the week
+wday(datetime)
+```
+
+
+
+```{r}
+(datetime <- ymd_hms("2016-07-08 12:34:56"))
+update(datetime, year = 2020, month = 2, mday = 2, hour = 2)
+```
+
+```{r}
+(h_age <- today() - ymd(19791014))
+as.duration(h_age)
+
+dseconds(15)
+dminutes(10)
+dhours(c(12, 24))
+ddays(0:5)
+dweeks(3)
+dyears(1)
+```
+
+
+```{r}
+10 * (months(6) + days(1))
+days(50) + hours(25) + minutes(2)
+
+ymd("2016-01-01")+dyears(1)
+ymd("2016-01-01") + years(1)
+```
+
+
+```{r}
+(x1 <- ymd_hms("2015-06-01 12:00:00", tz = "America/New_York"))
+(x2 <- ymd_hms("2015-06-01 18:00:00", tz = "Europe/Copenhagen"))
+(x3 <- ymd_hms("2015-06-02 04:00:00", tz = "Pacific/Auckland"))
+
+x4 <- c(x1, x2, x3)
+
+with_tz(x4, tzone = "Australia/Lord_Howe")
+force_tz(x4, tzone = "Australia/Lord_Howe")
+```
+

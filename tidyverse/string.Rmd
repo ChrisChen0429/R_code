@@ -9,5 +9,169 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## String
+## String basic (str_c: combine)
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+
+# strength length
+str_length(c("a", "R for data science", NA))
+
+# strength combine
+str_c("x", "y", "z",sep = ',')
+
+# str_c is vectorized and replace na with 'na'
+x <- c("abc", NA)
+str_c("|-", str_replace_na(x), "-|")
+str_c("prefix-", c("a", "b", "c"), "-suffix")
+
+
+# use if inside str_c
+name <- "Hadley"
+time_of_day <- "morning"
+birthday <- TRUE
+
+str_c(
+  "Good ", time_of_day, " ", name,
+  if (birthday) " and HAPPY BIRTHDAY",
+  "."
+)
+
+# collapse
+str_c(c("x", "y", "z"))
+str_c(c("x", "y", "z"), collapse = ", ")
+
+```
+
+## Subsetting strings
+```{r}
+x <- c("Apple", "Banana", "Pear")
+str_sub(x, 1, 3)
+str_sub(x, -3, -1)
+
+
+str_to_lower(str_sub(x, 1, 1))
+str_to_upper(c("i", "ı"),locale = 'en')
+
+
+str_sort(x, locale = "en")  # English
+```
+
+## regular expressions
+
+* '.' matches any character;
+
+* regexps use the backslash, \, to escape special behaviour;
+
+* ^ to match the start of the string;
+
+* $ to match the end of the string.
+
+* \\d: matches any digit.
+
+* \\s: matches any whitespace (e.g. space, tab, newline).
+
+* \ [abc\ ]: matches a, b, or c.
+
+* (a|b): matches a or b
+
+* \ [^abc\ ]: matches anything except a, b, or c.
+
+* ?: 0 or 1
+
+* +: 1 or more
+
+* *: 0 or more
+
+* {n}: exactly n
+
+* {n,}: n or more
+
+* {,m}: at most m
+
+* {n,m}: between n and m
+
+```{r}
+x <- c("apple", "banana", "pear")
+str_view(x, "an")
+str_view(x, ".a.")
+
+```
+1. (.)\\1\\1: The same character appearing three times in a row. E.g. "aaa"
+
+2. "(.)(.)\\\\2\\\\1": A pair of characters followed by the same pair of characters in reversed order. E.g. "abba".
+
+3. (..)\\1: Any two characters repeated. E.g. "a1a1".
+
+4. "(.).\\\\1.\\\\1": A character followed by any character, the original character, any other character, the original character again. E.g. "abaca", "b8b.b".
+
+5. "(.)(.)(.).*\\3\\2\\1" Three characters followed by zero or more characters of any kind followed by the same three characters but in reverse order. E.g. "abcsgasgddsadgsdgcba" or "abccba" or "abc1cba".
+
+
+### Detect matches
+```{r}
+x <- c("apple", "banana", "pear")
+str_detect(x, "e")
+
+# How many common words start with t?
+sum(str_detect(words, "^t"))
+
+# What proportion of common words end with a vowel?
+mean(str_detect(words, "[aeiou]$"))
+
+# select the elements that match a pattern
+words[str_detect(words, "x$")]
+str_subset(words, "x$")
+
+
+# x <- c("apple", "banana", "pear")
+str_count(x, "a")
+
+
+tibble(
+  word = words
+)%>% 
+  mutate(
+    vowels = str_count(word, "[aeiou]"),
+    consonants = str_count(word, "[^aeiou]")
+  )
+```
+
+### Extract matches
+```{r}
+colours <- c("red", "orange", "yellow", "green", "blue", "purple")
+(colour_match <- str_c(colours, collapse = "|"))
+has_colour <- str_subset(sentences, colour_match)
+matches <- str_extract(has_colour, colour_match)
+
+(more <- sentences[str_count(sentences, colour_match) > 1])
+str_view_all(more, colour_match)
+
+
+tibble(sentence = sentences) %>% 
+  tidyr::extract(
+    sentence, c("article", "noun"), "(a|the) ([^ ]+)", 
+    remove = FALSE
+  ) %>% head(5)
+```
+
+
+### Replacing matches
+```{r}
+x <- c("apple", "pear", "banana")
+str_replace(x, "[aeiou]", "-")
+
+str_replace_all(x, "[aeiou]", "-")
+```
+
+### Splitting
+```{r}
+"a|b|c|d" %>% 
+  str_split("\\|") %>% 
+  .[[1]]
+
+#simplify = TRUE to return a matrix
+sentences %>%
+  head(5) %>% 
+  str_split(" ", simplify = TRUE)
+```
 
