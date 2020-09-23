@@ -1,0 +1,115 @@
+---
+
+title: "exercise"
+author: "Yi Chen"
+date: "9/23/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## create tables
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(lubridate)
+
+(student <- tibble(sid=1:10,
+                  s_name = c("zhao lei","qian dian","sun feng","li yun","zhou mei", "wu lan","zheng zhu","wang ju","zhao lei","zhao lei"),
+                  s_birth = c(ymd(19900101),ymd(19901221),ymd(19900520),ymd(19900806),ymd(19911212),ymd(20171213),ymd(19890701),ymd(19900120),ymd(19900121),ymd(19900122)),
+                  s_sex = c("Male","Male","Male","Male","Female","Female","Female","Female","Female","Male")))
+
+(score <- tibble(s_id = c(rep(1:4,each=3),rep(5:7,each=2)),
+                c_id = c(rep(1:3,4),1,3,1,3,3,1),
+                s_score = c(80,90,99,70,60,rep(80,4),50,30,20,76,87,31,34,89,98)))
+
+(course <- tibble(c_id=1:3,
+                  c_name = c('chinese','math','english'),
+                  t_id = c(2,1,3)))
+
+(teacher <- tibble(t_id = 1:3,
+                   t_name = c('zhang san','li si','wang wu')))
+```
+
+## questions
+
+#### find the information about the students where students have higher score on course 1 than course 2
+
+```{r}
+(answer_1 <- score %>% 
+   pivot_wider(names_from = c_id, values_from = s_score,names_prefix='class_') %>%
+   select(s_id,class_1,class_2) %>%
+   filter(!is.na(class_2) & class_1 > class_2) %>%
+   left_join(student,by = c("s_id" = "sid"))%>%
+   arrange(s_id))
+```
+
+#### find the information about the students where students have lower score on course 1 than course 2
+```{r}
+(answer_2 <- score %>%
+   pivot_wider(names_from = c_id, values_from=s_score,names_prefix='class_') %>%
+   select(s_id,class_1,class_2) %>%
+   filter(!is.na(class_2) & class_1 < class_2) %>%
+   left_join(student,by=c("s_id"="sid")) %>% 
+   arrange(s_id))
+```
+
+#### find the students information (id, name, and average score) whoes average score is bigger than 60
+```{r}
+(answer_3 <- score %>%
+   group_by(s_id) %>% 
+   summarise(average_score = round(mean(s_score,na.rm=TRUE),2)) %>%
+   filter(average_score > 60) %>%
+   left_join(student,by = c("s_id"="sid")) %>%
+   select(s_id,s_name,average_score) %>%
+   arrange(s_id)
+ )
+```
+
+#### find the information about students' id, name, number of course and total score
+```{r}
+(answer_4 <- score %>%
+             group_by(s_id) %>% summarise(N_course = n(),total_score = sum(s_score)) %>%
+             left_join(student,by = c("s_id"="sid")) %>%
+             select(s_id,s_name,N_course,total_score) %>%
+             arrange(s_id))
+```
+
+#### find the number of teacher whose family name is li
+```{r}
+(answer_5 <- teacher %>% 
+             filter(grepl("^li",t_name)))
+
+```
+
+
+#### find the student information who has taken the class tought by zhang san
+```{r}
+(answer_6 <- score %>% left_join(course,by=c("c_id"="c_id")) %>%
+             left_join(teacher,by=c("t_id"="t_id")) %>%
+             filter(t_name == "zhang san") %>% 
+             left_join(student,by= c("s_id"="sid")) %>%
+             arrange(s_id))
+```
+
+#### find the student information who has not taken the class taught by zhang san
+```{r}
+(students_take_zhangsan <- score %>% left_join(course,by = c("c_id" = "c_id")) %>%
+             left_join(teacher,by = c("t_id"="t_id")) %>%
+             filter(t_name=="zhang san") %>%
+             select(s_id))
+(answer_7 <- student %>% filter(! sid %in% pull(students_take_zhangsan)))
+## pull: take the tibble column into vector
+```
+
+#### find the student information who have taken both course 1 and course 2
+```{r}
+(answer_8 <- score %>% 
+   pivot_wider(names_from = c_id, values_from = s_score, names_prefix="course_") %>%
+   filter(!is.na(course_1) &!is.na(course_2)) %>%
+   left_join(student,by = c("s_id" = "sid")) %>%
+   select(s_id,s_name,s_birth,s_sex) %>%
+   arrange(s_id))
+```
+
