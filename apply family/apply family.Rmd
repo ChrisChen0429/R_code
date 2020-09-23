@@ -1,0 +1,114 @@
+---
+title: "apply family"
+author: "Yi Chen"
+date: "9/23/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## apply for array/matrix
+
+apply(array,margin,function) ==> array in (n-1) dimension
+```{r}
+(x <- matrix(rnorm(30),ncol = 6))
+apply(x,2,mean)
+```
+
+
+## lapply for dataframe, list, or vector
+
+lapply(list,function) ==> list
+
+```{r}
+(x <- list(a = 1:10, beta = exp(-3:3), logic = c(TRUE,FALSE,FALSE,TRUE)))
+lapply(x, mean)
+
+A <- matrix(c(1,2,3,4,5,6,7,8,9),ncol = 3)
+B <- matrix(c(4,5,6,7,8,9,10,11,12),ncol = 3)
+C <- matrix(c(8,9,10,11,12,13),ncol = 2)
+(mylist <- list(A,B,C))
+lapply(mylist,"[",,2)
+lapply(mylist,"[",1,)
+lapply(mylist,"[",2,1)
+```
+
+## sapply function
+
+similar to the lapply but to return the simplified list
+```{r}
+lapply(mylist,"[",2,1)
+sapply(mylist, "[",2,1)
+sapply(mylist,"[",2,1,simplify=FALSE)
+unlist(lapply(mylist,"[",2,1))
+```
+
+## rep
+```{r}
+rep(c(1,2,3),c(3,2,1))
+rep(1:4,len=21)
+```
+
+## mapply
+
+multivariate apply: mapply applies FUN to the first elements of each ... argument, the second elements, the third elements, and so on.
+
+```{r}
+mapply(rep, 1:4, 4:1)
+
+
+(Q1 <- matrix(c(rep(1, 4), rep(2, 4), rep(3, 4), rep(4, 4)),4,4))
+mapply(rep,1:4,4)
+```
+
+## sweep
+```{r}
+require(stats) # for median
+(med.att <- apply(attitude, 2, median))
+head(sweep(data.matrix(attitude), 2, med.att),10)  # subtract the column medians
+
+
+(A <- array(1:24, dim = 4:2))
+sweep(A, 1:2, apply(A, 1:2, median))
+
+```
+
+## aggregrates
+
+
+aggregate(x, ...)
+
+* Default S3 method:
+
+aggregate(x, ...)
+
+* S3 method for class 'data.frame'
+
+aggregate(x, by, FUN, ..., simplify = TRUE, drop = TRUE)
+
+* S3 method for class 'formula'
+
+aggregate(formula, data, FUN, ...,
+          subset, na.action = na.omit)
+
+* S3 method for class 'ts'
+
+aggregate(x, nfrequency = 1, FUN = sum, ndeltat = 1,
+          ts.eps = getOption("ts.eps"), ...)
+          
+```{r}
+aggregate(state.x77, list(Region = state.region), mean)
+
+aggregate(state.x77,
+          list(Region = state.region,
+               Cold = state.x77[,"Frost"] > 130),
+          mean)
+
+
+aggregate(weight ~ feed, data = chickwts, mean)
+aggregate(breaks ~ wool + tension, data = warpbreaks, mean)
+aggregate(cbind(Ozone, Temp) ~ Month, data = airquality, mean)
+```
+
