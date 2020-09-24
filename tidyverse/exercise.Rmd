@@ -194,13 +194,365 @@ taken_all_course <- score %>%
 
 
 #### find the students information who have taken the exact same courses with student has id equal to 1.
+
+*hard*
+
 ```{r}
-(cour <- score %>% filter(s_id == 1) %>% distinct(c_id))
+## group_concat
+
+(answer_10 <- score %>%
+    group_by(s_id) %>%
+    summarise(courses = toString(sort(unique(c_id)))) %>% #*****#
+    filter(courses == courses[1]) %>%
+    distinct(s_id) %>%
+    left_join(student,by = c("s_id"="sid")) %>%
+    arrange(s_id)
+ ) 
+
+
 ```
 
 
 
 #### find the student information who have ever taught by teacher zhang san.
+```{r}
+(answer_11 <- score %>% mutate(taught_by_zhangsan = 
+              ifelse(c_id %in% 
+              pull(teacher %>% filter(t_name =="zhang san") %>%
+                  inner_join(course,by=c("t_id"="t_id"))%>%
+                  select(c_id)),1,0)) %>%
+    group_by(s_id) %>%
+    summarise(N_zhangsan = sum(taught_by_zhangsan)) %>%
+    filter(N_zhangsan==0) %>%
+    distinct(s_id) %>%
+   left_join(student,by = c("s_id"="sid")) %>%
+    arrange(s_id))
+```
 
 
 #### find the student inforamtion (name and average score) who have failed in at least two courses.
+
+```{r}
+(answer_12 <- score %>% 
+    mutate(fail = ifelse(s_score < 60,1,0)) %>%
+    group_by(s_id) %>%
+    summarise(N_fail = sum(fail),
+              average_score = round(mean(s_score,na.rm = TRUE),2)) %>%
+    filter(N_fail >=2) %>%
+    left_join(student,by = c("s_id"="sid")) %>%
+    arrange(s_id))
+```
+#### find the students who have taken course 1 and failed (score <60) and rank the student descreasingly by score
+```{r}
+(answer_13 <- score %>% 
+    filter(c_id == 1 & s_score < 60) %>%
+    left_join(student,by = c("s_id"="sid")) %>%
+    arrange(desc(s_score))
+)
+```
+
+
+#### list all information about the students (including the coures they token and corresponding score) and rank the student decreasingly by average score 
+```{r}
+(answer_14 <- score %>%
+    left_join(course, by = c("c_id"="c_id")) %>%
+    group_by(s_id) %>%
+    summarise(course_taken = toString(sort(unique(c_name))),
+              scores = toString(sort(unique(s_score))),
+           average_score = mean(s_score,na.rm = TRUE)) %>%
+    left_join(student, by = c("s_id" = "sid")) %>%
+    arrange(desc(average_score))
+ )
+
+(avg_score <- score %>%
+      group_by(s_id) %>%
+      summarise(average_score = round(mean(s_score,na.rm =  TRUE),2)))
+      
+(answer_15 <- score %>% pivot_wider(names_from = c_id,values_from = s_score,names_prefix = "course_") %>%
+      left_join(student, by = c("s_id" = "sid")) %>%
+      left_join(avg_score, by = c("s_id" = "s_id")) %>%
+      arrange(desc(average_score))
+)
+
+
+```
+
+#### find the max, min, and average score for each course as well as the pass_rate
+```{r}
+(answer_16 <- score %>%
+    group_by(c_id) %>%
+    summarise(highest_score = max(s_score),
+              lowest_score = min(s_score),
+              pass_rate = round(mean(s_score>=60),2)) %>%
+    left_join(course,by= c("c_id" = "c_id")) %>%
+    arrange(desc(pass_rate))
+    )
+```
+
+#### rank the score by each course and show the ranking
+
+*hard*
+
+```{r}
+(answer_17 <- score %>%
+    group_by(c_id) %>%
+    mutate(ranking = rank(desc(s_score))) %>%
+    arrange(c_id,ranking)
+)
+
+
+(answer_17 <- score %>%
+    group_by(c_id) %>%
+    mutate(ranking = min_rank(desc(s_score))) %>%
+    arrange(c_id,ranking)
+)
+
+(answer_17 <- score %>%
+    group_by(c_id) %>%
+    mutate(ranking = dense_rank(desc(s_score))) %>%
+    arrange(c_id,ranking)
+)
+
+(answer_17 <- score %>%
+    group_by(c_id) %>%
+    mutate(ranking = round(percent_rank(desc(s_score)),2)) %>%
+    arrange(c_id,ranking)
+)
+```
+
+#### find the total score for each student and rank them
+```{r}
+(answer_18 <- score %>%
+    group_by(s_id) %>%
+    summarise(total_score = sum(s_score)) %>%
+    arrange(desc(total_score)) %>%
+    left_join(student,by = c("s_id"="sid"))
+)
+```
+
+#### find the average score for differnt teacher and different course and rank descreasingly by average score
+```{r}
+(answer_19 <- score %>%
+    left_join(course,by=c("c_id"="c_id")) %>%
+    left_join(teacher,by=c("t_id"="t_id")) %>%
+    group_by(c_name,t_name) %>%
+    summarise(average_score = round(mean(s_score,na.rm = TRUE),2)) %>%
+    arrange(desc(average_score))
+)
+```
+####  for each courese, find the 2th and 3th student's information
+```{r}
+(answer_20 <- score %>% 
+    group_by(c_id) %>%
+    mutate(ranking = dense_rank(s_score)) %>%
+    arrange(c_id, s_score) %>%
+    filter(ranking == 2 | ranking == 3) %>%
+    left_join(student,by = c("s_id"="sid")) %>%
+    left_join(course,by=c("c_id" = "c_id"))
+)
+```
+
+#### find the proportation of student having score between (0-60),(60-90), and (90,100) for each course
+```{r}
+(answer_21 <- score %>%
+    group_by(c_id) %>%
+    summarise(fail_rate = round(sum(s_score<60)/n(),2),
+              good_rate = round(sum(s_score>=60 & s_score<=90 )/n(),2),
+              excellent_rate = round(sum(s_score>90)/n(),2))
+)
+```
+
+#### find each students' average score and its ranking
+```{r}
+(answer_22 <- score %>%
+   group_by(s_id) %>%
+   summarise(average_score = round(mean(s_score),2)) %>%
+   mutate(rank= dense_rank(desc(average_score))) %>%
+   arrange(rank) %>%
+   left_join(student,by=c("s_id"="sid"))
+)
+```
+
+#### find the top three students for each course
+```{r}
+(answer_23 <- score %>%
+    group_by(c_id) %>%
+    mutate(rank = dense_rank(desc(s_score))) %>%
+    arrange(c_id,rank) %>%
+    filter(rank <= 3) 
+    
+)
+```
+
+#### find the number of students in each course
+```{r}
+(answer_24 <- score %>%
+    group_by(c_id) %>%
+    summarise(N_Student = n())
+)
+```
+
+#### find the students who only take two courses
+```{r}
+(answer_25 <- score %>%
+         group_by(s_id) %>%
+         summarise(N_course = n()) %>%
+         filter(N_course == 2) %>%
+         left_join(student,by=c("s_id"="sid"))
+)
+```
+#### find the number of male and female
+```{r}
+(answer_26 <- student %>%
+    group_by(s_sex) %>%
+    summarise(N_student=n())
+)
+```
+
+#### find the student contains feng
+```{r}
+(answer_27 <- student %>%
+    filter(grepl(".*feng.*",s_name))
+ )
+```
+
+#### find the students who have the same name
+```{r}
+(answer_28 <- student %>%
+   group_by(s_name) %>%
+   summarise(N_student= n()) %>%
+    filter(N_student>1)
+)
+```
+
+#### find the student who born in 1990
+```{r}
+(answer_29 <- student %>%
+    filter(year(s_birth)==1990)
+)
+```
+#### find the average score for each course and rank them
+```{r}
+(answer_30 <- score %>%
+    group_by(c_id) %>%
+    summarise(average_score = round(mean(s_score),2)) %>%
+    mutate(ranking = dense_rank(desc(average_score))) %>%
+    arrange(ranking)
+)
+```
+#### find all the students whoes average score is bigger than 85
+```{r}
+(answer_31 <- score %>%
+    group_by(s_id) %>%
+    summarise(average_score = round(mean(s_score),2)) %>%
+    filter(average_score >=85) %>%
+    left_join(student,by=c("s_id"="sid"))
+ 
+ )
+```
+#### find the student in the math course whoes score is lower than 60
+```{r}
+(answer_32 <- score %>% 
+    left_join(student,by = c("s_id"="sid")) %>%
+    left_join(course,by= c("c_id" = "c_id")) %>%
+    left_join(teacher, by = c("t_id"="t_id")) %>%
+    filter(c_name == "math" & s_score > 80)
+ 
+ )
+```
+
+#### for any courses, find the students whose socre is bigger than 70
+```{r}
+(answer_33 <- score %>%
+    filter(s_score>70) %>%
+    left_join(student,by = c("s_id"="sid")) %>%
+    left_join(course,by= c("c_id" = "c_id"))
+)
+```
+
+#### find all information of students who fail in any course
+```{r}
+(answer_34 <- score %>%
+    filter(s_score<60) %>%
+    left_join(student,by = c("s_id"="sid")) %>%
+    left_join(course,by= c("c_id" = "c_id"))
+ )
+```
+
+#### find the top student in zhang san's course
+
+*hard*
+```{r}
+(answer_35 <- score %>% 
+    left_join(student,by = c("s_id"="sid")) %>%
+    left_join(course,by= c("c_id" = "c_id")) %>%
+    left_join(teacher, by = c("t_id"="t_id")) %>%
+    filter(t_name=="zhang san") %>%
+    group_by(c_name) %>%
+    filter(s_score==max(s_score))
+)
+```
+
+#### find the same score from difffernt courses
+
+*hard*
+```{r}
+(answer_36 <- score %>% 
+    group_by(s_score) %>%
+    filter(n()>1) %>%
+    left_join(student,by = c("s_id"="sid")) %>%
+    left_join(course,by= c("c_id" = "c_id"))
+)
+```
+
+
+
+#### find the top two student from each course
+```{r}
+(anwer_37 <- score %>%
+    group_by(c_id) %>%
+    filter(dense_rank(desc(s_score))<=2) %>%
+    arrange(c_id,desc(s_score))%>%
+    left_join(student,by = c("s_id"="sid")) %>%
+    left_join(course,by= c("c_id" = "c_id"))
+)
+```
+#### count the numebr of student in each course (only care about the couse has at least five student)
+```{r}
+(answer_38 <- score %>%
+    group_by(c_id) %>%
+    summarise(n_student = n()) %>%
+    filter(n_student > 5) %>%
+    left_join(course,by= c("c_id" = "c_id"))
+)
+```
+
+#### find the student who take at least two course
+```{r}
+(answer_39 <- score %>% 
+    group_by(s_id) %>%
+    filter(n()>=2) %>%
+    left_join(student,by = c("s_id"="sid")) %>%
+    left_join(course,by= c("c_id" = "c_id"))
+)
+```
+
+#### find the age of student
+```{r}
+(anwer_38 <- student %>%
+    mutate(age=year(now())-year(s_birth)))
+```
+
+#### find the students who have the birthday this week/month, next month
+```{r}
+(answer_40 <- student %>%
+    filter(week(now()) == week(s_birth)))
+
+(answer_40 <- student %>%
+    filter(month(now()) == month(s_birth)))
+
+(answer_40 <- student %>%
+    filter(month(now())+1 == month(s_birth)))
+
+```
+
