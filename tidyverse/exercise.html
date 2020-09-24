@@ -563,6 +563,801 @@ library(lubridate)
 ## 2     2 qian dian 1990-12-21 Male 
 ## 3     3 sun feng  1990-05-20 Male 
 ## 4     4 li yun    1990-08-06 Male</code></pre>
+<pre class="r"><code>(answer_8 &lt;- score %&gt;% mutate(both_1_2 = ifelse(c_id %in% c(1,2),1,0)) %&gt;% 
+               group_by(s_id) %&gt;% 
+               summarise(sum_both = sum(both_1_2)) %&gt;%
+               filter(sum_both==2) %&gt;%
+               select(s_id) %&gt;%
+               left_join(student,by=c(&quot;s_id&quot;=&quot;sid&quot;)) %&gt;%
+               arrange(s_id))</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 4 x 4
+##    s_id s_name    s_birth    s_sex
+##   &lt;int&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt;
+## 1     1 zhao lei  1990-01-01 Male 
+## 2     2 qian dian 1990-12-21 Male 
+## 3     3 sun feng  1990-05-20 Male 
+## 4     4 li yun    1990-08-06 Male</code></pre>
+</div>
+<div id="find-the-student-information-who-have-taken-course-1-but-not-course-2" class="section level4">
+<h4>find the student information who have taken course 1 but not course 2</h4>
+<pre class="r"><code>(answer_9 &lt;- score %&gt;% 
+    pivot_wider(names_from = c_id,values_from = s_score,names_prefix=&quot;course_&quot;) %&gt;%
+    filter(!is.na(course_1) &amp; is.na(course_2)) %&gt;%
+    select(s_id) %&gt;%
+    left_join(student,by = c(&quot;s_id&quot; = &quot;sid&quot;)) %&gt;%
+    arrange(s_id)
+ )</code></pre>
+<pre><code>## # A tibble: 3 x 4
+##    s_id s_name    s_birth    s_sex 
+##   &lt;int&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt; 
+## 1     5 zhou mei  1991-12-12 Female
+## 2     6 wu lan    2017-12-13 Female
+## 3     7 zheng zhu 1989-07-01 Female</code></pre>
+<pre class="r"><code>contain_1 &lt;- score %&gt;%
+      mutate(taken_1 = ifelse(c_id == 1,1,0)) %&gt;%
+      group_by(s_id) %&gt;%
+      summarise(filter_1 = sum(taken_1)) %&gt;%
+      filter(filter_1==1) %&gt;%
+      select(s_id) %&gt;%
+      pull()</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre class="r"><code>not_contain_2 &lt;- score %&gt;%
+      mutate(taken_2 = ifelse(c_id == 2,1,0)) %&gt;%
+      group_by(s_id) %&gt;%
+      summarise(filter_2 = sum(taken_2)) %&gt;%
+      filter(filter_2&lt;1) %&gt;%
+      select(s_id) %&gt;%
+      pull()</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre class="r"><code>answer &lt;- intersect(contain_1,not_contain_2)
+(answer_9 &lt;- score %&gt;%
+      filter(s_id %in% answer) %&gt;%
+      select(s_id) %&gt;%
+      left_join(student,by = c(&quot;s_id&quot; = &quot;sid&quot;)) %&gt;%
+      arrange(s_id)
+)</code></pre>
+<pre><code>## # A tibble: 6 x 4
+##    s_id s_name    s_birth    s_sex 
+##   &lt;int&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt; 
+## 1     5 zhou mei  1991-12-12 Female
+## 2     5 zhou mei  1991-12-12 Female
+## 3     6 wu lan    2017-12-13 Female
+## 4     6 wu lan    2017-12-13 Female
+## 5     7 zheng zhu 1989-07-01 Female
+## 6     7 zheng zhu 1989-07-01 Female</code></pre>
+</div>
+<div id="find-the-student-information-who-have-not-taken-all-availble-course" class="section level4">
+<h4>find the student information who have not taken all availble course</h4>
+<pre class="r"><code>taken_all_course &lt;- score %&gt;%
+    pivot_wider(names_from = c_id, values_from = s_score,names_prefix=&quot;course_&quot;) %&gt;%
+    drop_na() %&gt;%
+    select(s_id) %&gt;%
+    pull()
+(answer_10 &lt;- score %&gt;% 
+      filter(! s_id %in% taken_all_course) %&gt;%
+      distinct(s_id) %&gt;%
+      left_join(student, by = c(&quot;s_id&quot; = &quot;sid&quot;)) %&gt;%
+      arrange(s_id)
+)</code></pre>
+<pre><code>## # A tibble: 3 x 4
+##    s_id s_name    s_birth    s_sex 
+##   &lt;int&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt; 
+## 1     5 zhou mei  1991-12-12 Female
+## 2     6 wu lan    2017-12-13 Female
+## 3     7 zheng zhu 1989-07-01 Female</code></pre>
+<pre class="r"><code>(answer_10 &lt;- score %&gt;% 
+      group_by(s_id) %&gt;%
+      summarise(n_course = n()) %&gt;%
+      filter(n_course&lt;max(n_course)) %&gt;%
+      select(s_id ) %&gt;%
+      left_join(student, by = c(&quot;s_id&quot; = &quot;sid&quot;)) %&gt;%
+      arrange(s_id)
+)</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 3 x 4
+##    s_id s_name    s_birth    s_sex 
+##   &lt;int&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt; 
+## 1     5 zhou mei  1991-12-12 Female
+## 2     6 wu lan    2017-12-13 Female
+## 3     7 zheng zhu 1989-07-01 Female</code></pre>
+</div>
+<div id="find-the-students-information-who-have-taken-the-at-least-one-same-course-with-the-student-has-id-equal-to-1." class="section level4">
+<h4>find the students information who have taken the at least one same course with the student has id equal to 1.</h4>
+<pre class="r"><code>(score %&gt;% filter(c_id %in%
+                 pull(score %&gt;% filter(s_id == 1) %&gt;% distinct(c_id))) %&gt;%
+   distinct(s_id) %&gt;%
+   left_join(student,by = c(&quot;s_id&quot;=&quot;sid&quot;)) %&gt;%
+    arrange(s_id)
+)</code></pre>
+<pre><code>## # A tibble: 7 x 4
+##    s_id s_name    s_birth    s_sex 
+##   &lt;int&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt; 
+## 1     1 zhao lei  1990-01-01 Male  
+## 2     2 qian dian 1990-12-21 Male  
+## 3     3 sun feng  1990-05-20 Male  
+## 4     4 li yun    1990-08-06 Male  
+## 5     5 zhou mei  1991-12-12 Female
+## 6     6 wu lan    2017-12-13 Female
+## 7     7 zheng zhu 1989-07-01 Female</code></pre>
+</div>
+<div id="find-the-students-information-who-have-taken-the-exact-same-courses-with-student-has-id-equal-to-1." class="section level4">
+<h4>find the students information who have taken the exact same courses with student has id equal to 1.</h4>
+<p><em>hard</em></p>
+<pre class="r"><code>## group_concat
+
+(answer_10 &lt;- score %&gt;%
+    group_by(s_id) %&gt;%
+    summarise(courses = toString(sort(unique(c_id)))) %&gt;% #*****#
+    filter(courses == courses[1]) %&gt;%
+    distinct(s_id) %&gt;%
+    left_join(student,by = c(&quot;s_id&quot;=&quot;sid&quot;)) %&gt;%
+    arrange(s_id)
+ ) </code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 4 x 4
+##    s_id s_name    s_birth    s_sex
+##   &lt;int&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt;
+## 1     1 zhao lei  1990-01-01 Male 
+## 2     2 qian dian 1990-12-21 Male 
+## 3     3 sun feng  1990-05-20 Male 
+## 4     4 li yun    1990-08-06 Male</code></pre>
+</div>
+<div id="find-the-student-information-who-have-ever-taught-by-teacher-zhang-san." class="section level4">
+<h4>find the student information who have ever taught by teacher zhang san.</h4>
+<pre class="r"><code>(answer_11 &lt;- score %&gt;% mutate(taught_by_zhangsan = 
+              ifelse(c_id %in% 
+              pull(teacher %&gt;% filter(t_name ==&quot;zhang san&quot;) %&gt;%
+                  inner_join(course,by=c(&quot;t_id&quot;=&quot;t_id&quot;))%&gt;%
+                  select(c_id)),1,0)) %&gt;%
+    group_by(s_id) %&gt;%
+    summarise(N_zhangsan = sum(taught_by_zhangsan)) %&gt;%
+    filter(N_zhangsan==0) %&gt;%
+    distinct(s_id) %&gt;%
+   left_join(student,by = c(&quot;s_id&quot;=&quot;sid&quot;)) %&gt;%
+    arrange(s_id))</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 3 x 4
+##    s_id s_name    s_birth    s_sex 
+##   &lt;int&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt; 
+## 1     5 zhou mei  1991-12-12 Female
+## 2     6 wu lan    2017-12-13 Female
+## 3     7 zheng zhu 1989-07-01 Female</code></pre>
+</div>
+<div id="find-the-student-inforamtion-name-and-average-score-who-have-failed-in-at-least-two-courses." class="section level4">
+<h4>find the student inforamtion (name and average score) who have failed in at least two courses.</h4>
+<pre class="r"><code>(answer_12 &lt;- score %&gt;% 
+    mutate(fail = ifelse(s_score &lt; 60,1,0)) %&gt;%
+    group_by(s_id) %&gt;%
+    summarise(N_fail = sum(fail),
+              average_score = round(mean(s_score,na.rm = TRUE),2)) %&gt;%
+    filter(N_fail &gt;=2) %&gt;%
+    left_join(student,by = c(&quot;s_id&quot;=&quot;sid&quot;)) %&gt;%
+    arrange(s_id))</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 2 x 6
+##    s_id N_fail average_score s_name s_birth    s_sex 
+##   &lt;int&gt;  &lt;dbl&gt;         &lt;dbl&gt; &lt;chr&gt;  &lt;date&gt;     &lt;chr&gt; 
+## 1     4      3          33.3 li yun 1990-08-06 Male  
+## 2     6      2          32.5 wu lan 2017-12-13 Female</code></pre>
+</div>
+<div id="find-the-students-who-have-taken-course-1-and-failed-score-60-and-rank-the-student-descreasingly-by-score" class="section level4">
+<h4>find the students who have taken course 1 and failed (score &lt;60) and rank the student descreasingly by score</h4>
+<pre class="r"><code>(answer_13 &lt;- score %&gt;% 
+    filter(c_id == 1 &amp; s_score &lt; 60) %&gt;%
+    left_join(student,by = c(&quot;s_id&quot;=&quot;sid&quot;)) %&gt;%
+    arrange(desc(s_score))
+)</code></pre>
+<pre><code>## # A tibble: 2 x 6
+##    s_id  c_id s_score s_name s_birth    s_sex 
+##   &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt; &lt;chr&gt;  &lt;date&gt;     &lt;chr&gt; 
+## 1     4     1      50 li yun 1990-08-06 Male  
+## 2     6     1      31 wu lan 2017-12-13 Female</code></pre>
+</div>
+<div id="list-all-information-about-the-students-including-the-coures-they-token-and-corresponding-score-and-rank-the-student-decreasingly-by-average-score" class="section level4">
+<h4>list all information about the students (including the coures they token and corresponding score) and rank the student decreasingly by average score</h4>
+<pre class="r"><code>(answer_14 &lt;- score %&gt;%
+    left_join(course, by = c(&quot;c_id&quot;=&quot;c_id&quot;)) %&gt;%
+    group_by(s_id) %&gt;%
+    summarise(course_taken = toString(sort(unique(c_name))),
+              scores = toString(sort(unique(s_score))),
+           average_score = mean(s_score,na.rm = TRUE)) %&gt;%
+    left_join(student, by = c(&quot;s_id&quot; = &quot;sid&quot;)) %&gt;%
+    arrange(desc(average_score))
+ )</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 7 x 7
+##    s_id course_taken          scores     average_score s_name   s_birth    s_sex
+##   &lt;int&gt; &lt;chr&gt;                 &lt;chr&gt;              &lt;dbl&gt; &lt;chr&gt;    &lt;date&gt;     &lt;chr&gt;
+## 1     7 chinese, english      89, 98              93.5 zheng z… 1989-07-01 Fema…
+## 2     1 chinese, english, ma… 80, 90, 99          89.7 zhao lei 1990-01-01 Male 
+## 3     5 chinese, english      76, 87              81.5 zhou mei 1991-12-12 Fema…
+## 4     3 chinese, english, ma… 80                  80   sun feng 1990-05-20 Male 
+## 5     2 chinese, english, ma… 60, 70, 80          70   qian di… 1990-12-21 Male 
+## 6     4 chinese, english, ma… 20, 30, 50          33.3 li yun   1990-08-06 Male 
+## 7     6 chinese, english      31, 34              32.5 wu lan   2017-12-13 Fema…</code></pre>
+<pre class="r"><code>(avg_score &lt;- score %&gt;%
+      group_by(s_id) %&gt;%
+      summarise(average_score = round(mean(s_score,na.rm =  TRUE),2)))</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 7 x 2
+##    s_id average_score
+##   &lt;int&gt;         &lt;dbl&gt;
+## 1     1          89.7
+## 2     2          70  
+## 3     3          80  
+## 4     4          33.3
+## 5     5          81.5
+## 6     6          32.5
+## 7     7          93.5</code></pre>
+<pre class="r"><code>(answer_15 &lt;- score %&gt;% pivot_wider(names_from = c_id,values_from = s_score,names_prefix = &quot;course_&quot;) %&gt;%
+      left_join(student, by = c(&quot;s_id&quot; = &quot;sid&quot;)) %&gt;%
+      left_join(avg_score, by = c(&quot;s_id&quot; = &quot;s_id&quot;)) %&gt;%
+      arrange(desc(average_score))
+)</code></pre>
+<pre><code>## # A tibble: 7 x 8
+##    s_id course_1 course_2 course_3 s_name    s_birth    s_sex  average_score
+##   &lt;int&gt;    &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt;          &lt;dbl&gt;
+## 1     7       98       NA       89 zheng zhu 1989-07-01 Female          93.5
+## 2     1       80       90       99 zhao lei  1990-01-01 Male            89.7
+## 3     5       76       NA       87 zhou mei  1991-12-12 Female          81.5
+## 4     3       80       80       80 sun feng  1990-05-20 Male            80  
+## 5     2       70       60       80 qian dian 1990-12-21 Male            70  
+## 6     4       50       30       20 li yun    1990-08-06 Male            33.3
+## 7     6       31       NA       34 wu lan    2017-12-13 Female          32.5</code></pre>
+</div>
+<div id="find-the-max-min-and-average-score-for-each-course-as-well-as-the-pass_rate" class="section level4">
+<h4>find the max, min, and average score for each course as well as the pass_rate</h4>
+<pre class="r"><code>(answer_16 &lt;- score %&gt;%
+    group_by(c_id) %&gt;%
+    summarise(highest_score = max(s_score),
+              lowest_score = min(s_score),
+              pass_rate = round(mean(s_score&gt;=60),2)) %&gt;%
+    left_join(course,by= c(&quot;c_id&quot; = &quot;c_id&quot;)) %&gt;%
+    arrange(desc(pass_rate))
+    )</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 3 x 6
+##    c_id highest_score lowest_score pass_rate c_name   t_id
+##   &lt;dbl&gt;         &lt;dbl&gt;        &lt;dbl&gt;     &lt;dbl&gt; &lt;chr&gt;   &lt;dbl&gt;
+## 1     2            90           30      0.75 math        1
+## 2     1            98           31      0.71 chinese     2
+## 3     3            99           20      0.71 english     3</code></pre>
+</div>
+<div id="rank-the-score-by-each-course-and-show-the-ranking" class="section level4">
+<h4>rank the score by each course and show the ranking</h4>
+<p><em>hard</em></p>
+<pre class="r"><code>(answer_17 &lt;- score %&gt;%
+    group_by(c_id) %&gt;%
+    mutate(ranking = rank(desc(s_score))) %&gt;%
+    arrange(c_id,ranking)
+)</code></pre>
+<pre><code>## # A tibble: 18 x 4
+## # Groups:   c_id [3]
+##     s_id  c_id s_score ranking
+##    &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+##  1     7     1      98     1  
+##  2     1     1      80     2.5
+##  3     3     1      80     2.5
+##  4     5     1      76     4  
+##  5     2     1      70     5  
+##  6     4     1      50     6  
+##  7     6     1      31     7  
+##  8     1     2      90     1  
+##  9     3     2      80     2  
+## 10     2     2      60     3  
+## 11     4     2      30     4  
+## 12     1     3      99     1  
+## 13     7     3      89     2  
+## 14     5     3      87     3  
+## 15     2     3      80     4.5
+## 16     3     3      80     4.5
+## 17     6     3      34     6  
+## 18     4     3      20     7</code></pre>
+<pre class="r"><code>(answer_17 &lt;- score %&gt;%
+    group_by(c_id) %&gt;%
+    mutate(ranking = min_rank(desc(s_score))) %&gt;%
+    arrange(c_id,ranking)
+)</code></pre>
+<pre><code>## # A tibble: 18 x 4
+## # Groups:   c_id [3]
+##     s_id  c_id s_score ranking
+##    &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt;   &lt;int&gt;
+##  1     7     1      98       1
+##  2     1     1      80       2
+##  3     3     1      80       2
+##  4     5     1      76       4
+##  5     2     1      70       5
+##  6     4     1      50       6
+##  7     6     1      31       7
+##  8     1     2      90       1
+##  9     3     2      80       2
+## 10     2     2      60       3
+## 11     4     2      30       4
+## 12     1     3      99       1
+## 13     7     3      89       2
+## 14     5     3      87       3
+## 15     2     3      80       4
+## 16     3     3      80       4
+## 17     6     3      34       6
+## 18     4     3      20       7</code></pre>
+<pre class="r"><code>(answer_17 &lt;- score %&gt;%
+    group_by(c_id) %&gt;%
+    mutate(ranking = dense_rank(desc(s_score))) %&gt;%
+    arrange(c_id,ranking)
+)</code></pre>
+<pre><code>## # A tibble: 18 x 4
+## # Groups:   c_id [3]
+##     s_id  c_id s_score ranking
+##    &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt;   &lt;int&gt;
+##  1     7     1      98       1
+##  2     1     1      80       2
+##  3     3     1      80       2
+##  4     5     1      76       3
+##  5     2     1      70       4
+##  6     4     1      50       5
+##  7     6     1      31       6
+##  8     1     2      90       1
+##  9     3     2      80       2
+## 10     2     2      60       3
+## 11     4     2      30       4
+## 12     1     3      99       1
+## 13     7     3      89       2
+## 14     5     3      87       3
+## 15     2     3      80       4
+## 16     3     3      80       4
+## 17     6     3      34       5
+## 18     4     3      20       6</code></pre>
+<pre class="r"><code>(answer_17 &lt;- score %&gt;%
+    group_by(c_id) %&gt;%
+    mutate(ranking = round(percent_rank(desc(s_score)),2)) %&gt;%
+    arrange(c_id,ranking)
+)</code></pre>
+<pre><code>## # A tibble: 18 x 4
+## # Groups:   c_id [3]
+##     s_id  c_id s_score ranking
+##    &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+##  1     7     1      98    0   
+##  2     1     1      80    0.17
+##  3     3     1      80    0.17
+##  4     5     1      76    0.5 
+##  5     2     1      70    0.67
+##  6     4     1      50    0.83
+##  7     6     1      31    1   
+##  8     1     2      90    0   
+##  9     3     2      80    0.33
+## 10     2     2      60    0.67
+## 11     4     2      30    1   
+## 12     1     3      99    0   
+## 13     7     3      89    0.17
+## 14     5     3      87    0.33
+## 15     2     3      80    0.5 
+## 16     3     3      80    0.5 
+## 17     6     3      34    0.83
+## 18     4     3      20    1</code></pre>
+</div>
+<div id="find-the-total-score-for-each-student-and-rank-them" class="section level4">
+<h4>find the total score for each student and rank them</h4>
+<pre class="r"><code>(answer_18 &lt;- score %&gt;%
+    group_by(s_id) %&gt;%
+    summarise(total_score = sum(s_score)) %&gt;%
+    arrange(desc(total_score)) %&gt;%
+    left_join(student,by = c(&quot;s_id&quot;=&quot;sid&quot;))
+)</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 7 x 5
+##    s_id total_score s_name    s_birth    s_sex 
+##   &lt;int&gt;       &lt;dbl&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt; 
+## 1     1         269 zhao lei  1990-01-01 Male  
+## 2     3         240 sun feng  1990-05-20 Male  
+## 3     2         210 qian dian 1990-12-21 Male  
+## 4     7         187 zheng zhu 1989-07-01 Female
+## 5     5         163 zhou mei  1991-12-12 Female
+## 6     4         100 li yun    1990-08-06 Male  
+## 7     6          65 wu lan    2017-12-13 Female</code></pre>
+</div>
+<div id="find-the-average-score-for-differnt-teacher-and-different-course-and-rank-descreasingly-by-average-score" class="section level4">
+<h4>find the average score for differnt teacher and different course and rank descreasingly by average score</h4>
+<pre class="r"><code>(answer_19 &lt;- score %&gt;%
+    left_join(course,by=c(&quot;c_id&quot;=&quot;c_id&quot;)) %&gt;%
+    left_join(teacher,by=c(&quot;t_id&quot;=&quot;t_id&quot;)) %&gt;%
+    group_by(c_name,t_name) %&gt;%
+    summarise(average_score = round(mean(s_score,na.rm = TRUE),2)) %&gt;%
+    arrange(desc(average_score))
+)</code></pre>
+<pre><code>## `summarise()` regrouping output by &#39;c_name&#39; (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 3 x 3
+## # Groups:   c_name [3]
+##   c_name  t_name    average_score
+##   &lt;chr&gt;   &lt;chr&gt;             &lt;dbl&gt;
+## 1 english wang wu            69.9
+## 2 chinese li si              69.3
+## 3 math    zhang san          65</code></pre>
+</div>
+<div id="for-each-courese-find-the-2th-and-3th-students-information" class="section level4">
+<h4>for each courese, find the 2th and 3th student’s information</h4>
+<pre class="r"><code>(answer_20 &lt;- score %&gt;% 
+    group_by(c_id) %&gt;%
+    mutate(ranking = dense_rank(s_score)) %&gt;%
+    arrange(c_id, s_score) %&gt;%
+    filter(ranking == 2 | ranking == 3) %&gt;%
+    left_join(student,by = c(&quot;s_id&quot;=&quot;sid&quot;)) %&gt;%
+    left_join(course,by=c(&quot;c_id&quot; = &quot;c_id&quot;))
+)</code></pre>
+<pre><code>## # A tibble: 7 x 9
+## # Groups:   c_id [3]
+##    s_id  c_id s_score ranking s_name    s_birth    s_sex  c_name   t_id
+##   &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt;   &lt;int&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt;  &lt;chr&gt;   &lt;dbl&gt;
+## 1     4     1      50       2 li yun    1990-08-06 Male   chinese     2
+## 2     2     1      70       3 qian dian 1990-12-21 Male   chinese     2
+## 3     2     2      60       2 qian dian 1990-12-21 Male   math        1
+## 4     3     2      80       3 sun feng  1990-05-20 Male   math        1
+## 5     6     3      34       2 wu lan    2017-12-13 Female english     3
+## 6     2     3      80       3 qian dian 1990-12-21 Male   english     3
+## 7     3     3      80       3 sun feng  1990-05-20 Male   english     3</code></pre>
+</div>
+<div id="find-the-proportation-of-student-having-score-between-0-6060-90-and-90100-for-each-course" class="section level4">
+<h4>find the proportation of student having score between (0-60),(60-90), and (90,100) for each course</h4>
+<pre class="r"><code>(answer_21 &lt;- score %&gt;%
+    group_by(c_id) %&gt;%
+    summarise(fail_rate = round(sum(s_score&lt;60)/n(),2),
+              good_rate = round(sum(s_score&gt;=60 &amp; s_score&lt;=90 )/n(),2),
+              excellent_rate = round(sum(s_score&gt;90)/n(),2))
+)</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 3 x 4
+##    c_id fail_rate good_rate excellent_rate
+##   &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;          &lt;dbl&gt;
+## 1     1     0.290     0.570           0.14
+## 2     2     0.25      0.75            0   
+## 3     3     0.290     0.570           0.14</code></pre>
+</div>
+<div id="find-each-students-average-score-and-its-ranking" class="section level4">
+<h4>find each students’ average score and its ranking</h4>
+<pre class="r"><code>(answer_22 &lt;- score %&gt;%
+   group_by(s_id) %&gt;%
+   summarise(average_score = round(mean(s_score),2)) %&gt;%
+   mutate(rank= dense_rank(desc(average_score))) %&gt;%
+   arrange(rank) %&gt;%
+   left_join(student,by=c(&quot;s_id&quot;=&quot;sid&quot;))
+)</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 7 x 6
+##    s_id average_score  rank s_name    s_birth    s_sex 
+##   &lt;int&gt;         &lt;dbl&gt; &lt;int&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt; 
+## 1     7          93.5     1 zheng zhu 1989-07-01 Female
+## 2     1          89.7     2 zhao lei  1990-01-01 Male  
+## 3     5          81.5     3 zhou mei  1991-12-12 Female
+## 4     3          80       4 sun feng  1990-05-20 Male  
+## 5     2          70       5 qian dian 1990-12-21 Male  
+## 6     4          33.3     6 li yun    1990-08-06 Male  
+## 7     6          32.5     7 wu lan    2017-12-13 Female</code></pre>
+</div>
+<div id="find-the-top-three-students-for-each-course" class="section level4">
+<h4>find the top three students for each course</h4>
+<pre class="r"><code>(answer_23 &lt;- score %&gt;%
+    group_by(c_id) %&gt;%
+    mutate(rank = dense_rank(desc(s_score))) %&gt;%
+    arrange(c_id,rank) %&gt;%
+    filter(rank &lt;= 3) 
+    
+)</code></pre>
+<pre><code>## # A tibble: 10 x 4
+## # Groups:   c_id [3]
+##     s_id  c_id s_score  rank
+##    &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt; &lt;int&gt;
+##  1     7     1      98     1
+##  2     1     1      80     2
+##  3     3     1      80     2
+##  4     5     1      76     3
+##  5     1     2      90     1
+##  6     3     2      80     2
+##  7     2     2      60     3
+##  8     1     3      99     1
+##  9     7     3      89     2
+## 10     5     3      87     3</code></pre>
+</div>
+<div id="find-the-number-of-students-in-each-course" class="section level4">
+<h4>find the number of students in each course</h4>
+<pre class="r"><code>(answer_24 &lt;- score %&gt;%
+    group_by(c_id) %&gt;%
+    summarise(N_Student = n())
+)</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 3 x 2
+##    c_id N_Student
+##   &lt;dbl&gt;     &lt;int&gt;
+## 1     1         7
+## 2     2         4
+## 3     3         7</code></pre>
+</div>
+<div id="find-the-students-who-only-take-two-courses" class="section level4">
+<h4>find the students who only take two courses</h4>
+<pre class="r"><code>(answer_25 &lt;- score %&gt;%
+         group_by(s_id) %&gt;%
+         summarise(N_course = n()) %&gt;%
+         filter(N_course == 2) %&gt;%
+         left_join(student,by=c(&quot;s_id&quot;=&quot;sid&quot;))
+)</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 3 x 5
+##    s_id N_course s_name    s_birth    s_sex 
+##   &lt;int&gt;    &lt;int&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt; 
+## 1     5        2 zhou mei  1991-12-12 Female
+## 2     6        2 wu lan    2017-12-13 Female
+## 3     7        2 zheng zhu 1989-07-01 Female</code></pre>
+</div>
+<div id="find-the-number-of-male-and-female" class="section level4">
+<h4>find the number of male and female</h4>
+<pre class="r"><code>(answer_26 &lt;- student %&gt;%
+    group_by(s_sex) %&gt;%
+    summarise(N_student=n())
+)</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 2 x 2
+##   s_sex  N_student
+##   &lt;chr&gt;      &lt;int&gt;
+## 1 Female         5
+## 2 Male           5</code></pre>
+</div>
+<div id="find-the-student-contains-feng" class="section level4">
+<h4>find the student contains feng</h4>
+<pre class="r"><code>(answer_27 &lt;- student %&gt;%
+    filter(grepl(&quot;.*feng.*&quot;,s_name))
+ )</code></pre>
+<pre><code>## # A tibble: 1 x 4
+##     sid s_name   s_birth    s_sex
+##   &lt;int&gt; &lt;chr&gt;    &lt;date&gt;     &lt;chr&gt;
+## 1     3 sun feng 1990-05-20 Male</code></pre>
+</div>
+<div id="find-the-students-who-have-the-same-name" class="section level4">
+<h4>find the students who have the same name</h4>
+<pre class="r"><code>(answer_28 &lt;- student %&gt;%
+   group_by(s_name) %&gt;%
+   summarise(N_student= n()) %&gt;%
+    filter(N_student&gt;1)
+)</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 1 x 2
+##   s_name   N_student
+##   &lt;chr&gt;        &lt;int&gt;
+## 1 zhao lei         3</code></pre>
+</div>
+<div id="find-the-student-who-born-in-1990" class="section level4">
+<h4>find the student who born in 1990</h4>
+<pre class="r"><code>(answer_29 &lt;- student %&gt;%
+    filter(year(s_birth)==1990)
+)</code></pre>
+<pre><code>## # A tibble: 7 x 4
+##     sid s_name    s_birth    s_sex 
+##   &lt;int&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt; 
+## 1     1 zhao lei  1990-01-01 Male  
+## 2     2 qian dian 1990-12-21 Male  
+## 3     3 sun feng  1990-05-20 Male  
+## 4     4 li yun    1990-08-06 Male  
+## 5     8 wang ju   1990-01-20 Female
+## 6     9 zhao lei  1990-01-21 Female
+## 7    10 zhao lei  1990-01-22 Male</code></pre>
+</div>
+<div id="find-the-average-score-for-each-course-and-rank-them" class="section level4">
+<h4>find the average score for each course and rank them</h4>
+<pre class="r"><code>(answer_30 &lt;- score %&gt;%
+    group_by(c_id) %&gt;%
+    summarise(average_score = round(mean(s_score),2)) %&gt;%
+    mutate(ranking = dense_rank(desc(average_score))) %&gt;%
+    arrange(ranking)
+)</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 3 x 3
+##    c_id average_score ranking
+##   &lt;dbl&gt;         &lt;dbl&gt;   &lt;int&gt;
+## 1     3          69.9       1
+## 2     1          69.3       2
+## 3     2          65         3</code></pre>
+</div>
+<div id="find-all-the-students-whoes-average-score-is-bigger-than-85" class="section level4">
+<h4>find all the students whoes average score is bigger than 85</h4>
+<pre class="r"><code>(answer_31 &lt;- score %&gt;%
+    group_by(s_id) %&gt;%
+    summarise(average_score = round(mean(s_score),2)) %&gt;%
+    filter(average_score &gt;=85) %&gt;%
+    left_join(student,by=c(&quot;s_id&quot;=&quot;sid&quot;))
+ 
+ )</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 2 x 5
+##    s_id average_score s_name    s_birth    s_sex 
+##   &lt;int&gt;         &lt;dbl&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt; 
+## 1     1          89.7 zhao lei  1990-01-01 Male  
+## 2     7          93.5 zheng zhu 1989-07-01 Female</code></pre>
+</div>
+<div id="find-the-student-in-the-math-course-whoes-score-is-lower-than-60" class="section level4">
+<h4>find the student in the math course whoes score is lower than 60</h4>
+<pre class="r"><code>(answer_32 &lt;- score %&gt;% 
+    left_join(student,by = c(&quot;s_id&quot;=&quot;sid&quot;)) %&gt;%
+    left_join(course,by= c(&quot;c_id&quot; = &quot;c_id&quot;)) %&gt;%
+    left_join(teacher, by = c(&quot;t_id&quot;=&quot;t_id&quot;)) %&gt;%
+    filter(c_name == &quot;math&quot; &amp; s_score &gt; 80)
+ 
+ )</code></pre>
+<pre><code>## # A tibble: 1 x 9
+##    s_id  c_id s_score s_name   s_birth    s_sex c_name  t_id t_name   
+##   &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt; &lt;chr&gt;    &lt;date&gt;     &lt;chr&gt; &lt;chr&gt;  &lt;dbl&gt; &lt;chr&gt;    
+## 1     1     2      90 zhao lei 1990-01-01 Male  math       1 zhang san</code></pre>
+</div>
+<div id="for-any-courses-find-the-students-whose-socre-is-bigger-than-70" class="section level4">
+<h4>for any courses, find the students whose socre is bigger than 70</h4>
+<pre class="r"><code>(answer_33 &lt;- score %&gt;%
+    filter(s_score&gt;70) %&gt;%
+    left_join(student,by = c(&quot;s_id&quot;=&quot;sid&quot;)) %&gt;%
+    left_join(course,by= c(&quot;c_id&quot; = &quot;c_id&quot;))
+)</code></pre>
+<pre><code>## # A tibble: 11 x 8
+##     s_id  c_id s_score s_name    s_birth    s_sex  c_name   t_id
+##    &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt;  &lt;chr&gt;   &lt;dbl&gt;
+##  1     1     1      80 zhao lei  1990-01-01 Male   chinese     2
+##  2     1     2      90 zhao lei  1990-01-01 Male   math        1
+##  3     1     3      99 zhao lei  1990-01-01 Male   english     3
+##  4     2     3      80 qian dian 1990-12-21 Male   english     3
+##  5     3     1      80 sun feng  1990-05-20 Male   chinese     2
+##  6     3     2      80 sun feng  1990-05-20 Male   math        1
+##  7     3     3      80 sun feng  1990-05-20 Male   english     3
+##  8     5     1      76 zhou mei  1991-12-12 Female chinese     2
+##  9     5     3      87 zhou mei  1991-12-12 Female english     3
+## 10     7     3      89 zheng zhu 1989-07-01 Female english     3
+## 11     7     1      98 zheng zhu 1989-07-01 Female chinese     2</code></pre>
+</div>
+<div id="find-all-information-of-students-who-fail-in-any-course" class="section level4">
+<h4>find all information of students who fail in any course</h4>
+<pre class="r"><code>(answer_34 &lt;- score %&gt;%
+    filter(s_score&lt;60) %&gt;%
+    left_join(student,by = c(&quot;s_id&quot;=&quot;sid&quot;)) %&gt;%
+    left_join(course,by= c(&quot;c_id&quot; = &quot;c_id&quot;))
+ )</code></pre>
+<pre><code>## # A tibble: 5 x 8
+##    s_id  c_id s_score s_name s_birth    s_sex  c_name   t_id
+##   &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt; &lt;chr&gt;  &lt;date&gt;     &lt;chr&gt;  &lt;chr&gt;   &lt;dbl&gt;
+## 1     4     1      50 li yun 1990-08-06 Male   chinese     2
+## 2     4     2      30 li yun 1990-08-06 Male   math        1
+## 3     4     3      20 li yun 1990-08-06 Male   english     3
+## 4     6     1      31 wu lan 2017-12-13 Female chinese     2
+## 5     6     3      34 wu lan 2017-12-13 Female english     3</code></pre>
+</div>
+<div id="find-the-top-student-in-zhang-sans-course" class="section level4">
+<h4>find the top student in zhang san’s course</h4>
+<p><em>hard</em></p>
+<pre class="r"><code>(answer_35 &lt;- score %&gt;% 
+    left_join(student,by = c(&quot;s_id&quot;=&quot;sid&quot;)) %&gt;%
+    left_join(course,by= c(&quot;c_id&quot; = &quot;c_id&quot;)) %&gt;%
+    left_join(teacher, by = c(&quot;t_id&quot;=&quot;t_id&quot;)) %&gt;%
+    filter(t_name==&quot;zhang san&quot;) %&gt;%
+    group_by(c_name) %&gt;%
+    filter(s_score==max(s_score))
+)</code></pre>
+<pre><code>## # A tibble: 1 x 9
+## # Groups:   c_name [1]
+##    s_id  c_id s_score s_name   s_birth    s_sex c_name  t_id t_name   
+##   &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt; &lt;chr&gt;    &lt;date&gt;     &lt;chr&gt; &lt;chr&gt;  &lt;dbl&gt; &lt;chr&gt;    
+## 1     1     2      90 zhao lei 1990-01-01 Male  math       1 zhang san</code></pre>
+</div>
+<div id="find-the-same-score-from-difffernt-courses" class="section level4">
+<h4>find the same score from difffernt courses</h4>
+<p><em>hard</em></p>
+<pre class="r"><code>(answer_36 &lt;- score %&gt;% 
+    group_by(s_score) %&gt;%
+    filter(n()&gt;1) %&gt;%
+    left_join(student,by = c(&quot;s_id&quot;=&quot;sid&quot;)) %&gt;%
+    left_join(course,by= c(&quot;c_id&quot; = &quot;c_id&quot;))
+)</code></pre>
+<pre><code>## # A tibble: 5 x 8
+## # Groups:   s_score [1]
+##    s_id  c_id s_score s_name    s_birth    s_sex c_name   t_id
+##   &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt; &lt;chr&gt;   &lt;dbl&gt;
+## 1     1     1      80 zhao lei  1990-01-01 Male  chinese     2
+## 2     2     3      80 qian dian 1990-12-21 Male  english     3
+## 3     3     1      80 sun feng  1990-05-20 Male  chinese     2
+## 4     3     2      80 sun feng  1990-05-20 Male  math        1
+## 5     3     3      80 sun feng  1990-05-20 Male  english     3</code></pre>
+</div>
+<div id="find-the-top-two-student-from-each-course" class="section level4">
+<h4>find the top two student from each course</h4>
+<pre class="r"><code>(anwer_37 &lt;- score %&gt;%
+    group_by(c_id) %&gt;%
+    filter(dense_rank(desc(s_score))&lt;=2) %&gt;%
+    arrange(c_id,desc(s_score))%&gt;%
+    left_join(student,by = c(&quot;s_id&quot;=&quot;sid&quot;)) %&gt;%
+    left_join(course,by= c(&quot;c_id&quot; = &quot;c_id&quot;))
+)</code></pre>
+<pre><code>## # A tibble: 7 x 8
+## # Groups:   c_id [3]
+##    s_id  c_id s_score s_name    s_birth    s_sex  c_name   t_id
+##   &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt;  &lt;chr&gt;   &lt;dbl&gt;
+## 1     7     1      98 zheng zhu 1989-07-01 Female chinese     2
+## 2     1     1      80 zhao lei  1990-01-01 Male   chinese     2
+## 3     3     1      80 sun feng  1990-05-20 Male   chinese     2
+## 4     1     2      90 zhao lei  1990-01-01 Male   math        1
+## 5     3     2      80 sun feng  1990-05-20 Male   math        1
+## 6     1     3      99 zhao lei  1990-01-01 Male   english     3
+## 7     7     3      89 zheng zhu 1989-07-01 Female english     3</code></pre>
+</div>
+<div id="count-the-numebr-of-student-in-each-course-only-care-about-the-couse-has-at-least-five-student" class="section level4">
+<h4>count the numebr of student in each course (only care about the couse has at least five student)</h4>
+<pre class="r"><code>(answer_38 &lt;- score %&gt;%
+    group_by(c_id) %&gt;%
+    summarise(n_student = n()) %&gt;%
+    filter(n_student &gt; 5) %&gt;%
+    left_join(course,by= c(&quot;c_id&quot; = &quot;c_id&quot;))
+)</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 2 x 4
+##    c_id n_student c_name   t_id
+##   &lt;dbl&gt;     &lt;int&gt; &lt;chr&gt;   &lt;dbl&gt;
+## 1     1         7 chinese     2
+## 2     3         7 english     3</code></pre>
+</div>
+<div id="find-the-student-who-take-at-least-two-course" class="section level4">
+<h4>find the student who take at least two course</h4>
+<pre class="r"><code>(answer_39 &lt;- score %&gt;% 
+    group_by(s_id) %&gt;%
+    filter(n()&gt;=2) %&gt;%
+    left_join(student,by = c(&quot;s_id&quot;=&quot;sid&quot;)) %&gt;%
+    left_join(course,by= c(&quot;c_id&quot; = &quot;c_id&quot;))
+)</code></pre>
+<pre><code>## # A tibble: 18 x 8
+## # Groups:   s_id [7]
+##     s_id  c_id s_score s_name    s_birth    s_sex  c_name   t_id
+##    &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt;  &lt;chr&gt;   &lt;dbl&gt;
+##  1     1     1      80 zhao lei  1990-01-01 Male   chinese     2
+##  2     1     2      90 zhao lei  1990-01-01 Male   math        1
+##  3     1     3      99 zhao lei  1990-01-01 Male   english     3
+##  4     2     1      70 qian dian 1990-12-21 Male   chinese     2
+##  5     2     2      60 qian dian 1990-12-21 Male   math        1
+##  6     2     3      80 qian dian 1990-12-21 Male   english     3
+##  7     3     1      80 sun feng  1990-05-20 Male   chinese     2
+##  8     3     2      80 sun feng  1990-05-20 Male   math        1
+##  9     3     3      80 sun feng  1990-05-20 Male   english     3
+## 10     4     1      50 li yun    1990-08-06 Male   chinese     2
+## 11     4     2      30 li yun    1990-08-06 Male   math        1
+## 12     4     3      20 li yun    1990-08-06 Male   english     3
+## 13     5     1      76 zhou mei  1991-12-12 Female chinese     2
+## 14     5     3      87 zhou mei  1991-12-12 Female english     3
+## 15     6     1      31 wu lan    2017-12-13 Female chinese     2
+## 16     6     3      34 wu lan    2017-12-13 Female english     3
+## 17     7     3      89 zheng zhu 1989-07-01 Female english     3
+## 18     7     1      98 zheng zhu 1989-07-01 Female chinese     2</code></pre>
+</div>
+<div id="find-the-age-of-student" class="section level4">
+<h4>find the age of student</h4>
+<pre class="r"><code>(anwer_38 &lt;- student %&gt;%
+    mutate(age=year(now())-year(s_birth)))</code></pre>
+<pre><code>## # A tibble: 10 x 5
+##      sid s_name    s_birth    s_sex    age
+##    &lt;int&gt; &lt;chr&gt;     &lt;date&gt;     &lt;chr&gt;  &lt;dbl&gt;
+##  1     1 zhao lei  1990-01-01 Male      30
+##  2     2 qian dian 1990-12-21 Male      30
+##  3     3 sun feng  1990-05-20 Male      30
+##  4     4 li yun    1990-08-06 Male      30
+##  5     5 zhou mei  1991-12-12 Female    29
+##  6     6 wu lan    2017-12-13 Female     3
+##  7     7 zheng zhu 1989-07-01 Female    31
+##  8     8 wang ju   1990-01-20 Female    30
+##  9     9 zhao lei  1990-01-21 Female    30
+## 10    10 zhao lei  1990-01-22 Male      30</code></pre>
+</div>
+<div id="find-the-students-who-have-the-birthday-this-weekmonth-next-month" class="section level4">
+<h4>find the students who have the birthday this week/month, next month</h4>
+<pre class="r"><code>(answer_40 &lt;- student %&gt;%
+    filter(week(now()) == week(s_birth)))</code></pre>
+<pre><code>## # A tibble: 0 x 4
+## # … with 4 variables: sid &lt;int&gt;, s_name &lt;chr&gt;, s_birth &lt;date&gt;, s_sex &lt;chr&gt;</code></pre>
+<pre class="r"><code>(answer_40 &lt;- student %&gt;%
+    filter(month(now()) == month(s_birth)))</code></pre>
+<pre><code>## # A tibble: 0 x 4
+## # … with 4 variables: sid &lt;int&gt;, s_name &lt;chr&gt;, s_birth &lt;date&gt;, s_sex &lt;chr&gt;</code></pre>
+<pre class="r"><code>(answer_40 &lt;- student %&gt;%
+    filter(month(now())+1 == month(s_birth)))</code></pre>
+<pre><code>## # A tibble: 0 x 4
+## # … with 4 variables: sid &lt;int&gt;, s_name &lt;chr&gt;, s_birth &lt;date&gt;, s_sex &lt;chr&gt;</code></pre>
 </div>
 </div>
 
