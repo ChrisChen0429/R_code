@@ -111,5 +111,96 @@ library(lubridate)
    left_join(student,by = c("s_id" = "sid")) %>%
    select(s_id,s_name,s_birth,s_sex) %>%
    arrange(s_id))
+
+
+(answer_8 <- score %>% mutate(both_1_2 = ifelse(c_id %in% c(1,2),1,0)) %>% 
+               group_by(s_id) %>% 
+               summarise(sum_both = sum(both_1_2)) %>%
+               filter(sum_both==2) %>%
+               select(s_id) %>%
+               left_join(student,by=c("s_id"="sid")) %>%
+               arrange(s_id))
 ```
 
+#### find the student information who have taken course 1 but not course 2
+```{r}
+(answer_9 <- score %>% 
+    pivot_wider(names_from = c_id,values_from = s_score,names_prefix="course_") %>%
+    filter(!is.na(course_1) & is.na(course_2)) %>%
+    select(s_id) %>%
+    left_join(student,by = c("s_id" = "sid")) %>%
+    arrange(s_id)
+ )
+
+contain_1 <- score %>%
+      mutate(taken_1 = ifelse(c_id == 1,1,0)) %>%
+      group_by(s_id) %>%
+      summarise(filter_1 = sum(taken_1)) %>%
+      filter(filter_1==1) %>%
+      select(s_id) %>%
+      pull()
+not_contain_2 <- score %>%
+      mutate(taken_2 = ifelse(c_id == 2,1,0)) %>%
+      group_by(s_id) %>%
+      summarise(filter_2 = sum(taken_2)) %>%
+      filter(filter_2<1) %>%
+      select(s_id) %>%
+      pull()
+answer <- intersect(contain_1,not_contain_2)
+(answer_9 <- score %>%
+      filter(s_id %in% answer) %>%
+      select(s_id) %>%
+      left_join(student,by = c("s_id" = "sid")) %>%
+      arrange(s_id)
+)
+   
+```
+
+#### find the student information who have not taken all availble course
+```{r}
+taken_all_course <- score %>%
+    pivot_wider(names_from = c_id, values_from = s_score,names_prefix="course_") %>%
+    drop_na() %>%
+    select(s_id) %>%
+    pull()
+(answer_10 <- score %>% 
+      filter(! s_id %in% taken_all_course) %>%
+      distinct(s_id) %>%
+      left_join(student, by = c("s_id" = "sid")) %>%
+      arrange(s_id)
+)
+
+
+(answer_10 <- score %>% 
+      group_by(s_id) %>%
+      summarise(n_course = n()) %>%
+      filter(n_course<max(n_course)) %>%
+      select(s_id ) %>%
+      left_join(student, by = c("s_id" = "sid")) %>%
+      arrange(s_id)
+)
+   
+```
+
+#### find the students information who have taken the at least one same course with the student has id equal to 1.
+```{r}
+(score %>% filter(c_id %in%
+                 pull(score %>% filter(s_id == 1) %>% distinct(c_id))) %>%
+   distinct(s_id) %>%
+   left_join(student,by = c("s_id"="sid")) %>%
+    arrange(s_id)
+)
+```
+
+
+#### find the students information who have taken the exact same courses with student has id equal to 1.
+```{r}
+(cour <- score %>% filter(s_id == 1) %>% distinct(c_id))
+```
+
+
+
+#### find the student information who have ever taught by teacher zhang san.
+
+
+#### find the student inforamtion (name and average score) who have failed in at least two courses.
