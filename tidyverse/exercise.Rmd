@@ -1,5 +1,4 @@
 ---
-
 title: "exercise"
 author: "Yi Chen"
 date: "9/23/2020"
@@ -10,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## create tables
+# create tablesx
 ```{r message=FALSE, warning=FALSE}
 library(tidyverse)
 library(lubridate)
@@ -32,7 +31,7 @@ library(lubridate)
                    t_name = c('zhang san','li si','wang wu')))
 ```
 
-## questions
+# questions
 
 #### find the information about the students where students have higher score on course 1 than course 2
 
@@ -44,6 +43,19 @@ library(lubridate)
    left_join(student,by = c("s_id" = "sid"))%>%
    arrange(s_id))
 ```
+
+**Mysql**
+
+select st.s_id, st.s_name, sc1.s_score "course 1", sc2.s_score "course 2" 
+
+from Student as st 
+
+inner join Score as sc1 on sc1.s_id = st.s_id and sc1.c_id = "01" 
+
+inner join Score sc2 on st.s_id = sc2.s_id and sc2.c_id = "02" 
+
+where sc1.s_score < sc2.s_score;
+
 
 #### find the information about the students where students have lower score on course 1 than course 2
 ```{r}
@@ -554,5 +566,37 @@ taken_all_course <- score %>%
 (answer_40 <- student %>%
     filter(month(now())+1 == month(s_birth)))
 
+```
+
+
+#### find all combination of the two course
+```{r}
+courses <- course %>% distinct(c_name) %>% pull()
+combination <- matrix(0,ncol=2,nrow = 1)
+for (i in 1:(length(courses)-1)){
+  for (j in (i+1):length(course)){
+    print(c(i,j))
+    combination <- rbind(combination,c(c(courses[i],courses[j])))
+  }
+}
+combination[2:nrow(combination),]
+```
+
+#### find the serves time for each id
+```{r}
+data <- tibble(
+  serves_id = c(1,1,2,2,3,3,4,4,4,4,5),
+  status = c("r","o","r","o","r","o","r","o","r","o","r"),
+  servise_date = c(ymd(20200101),ymd(20200108),ymd(20200105),ymd(20200111),ymd(20200110),ymd(20200122),ymd(20200202),ymd(20200204),ymd(20200210),ymd(20200216),ymd(20200301))
+)
+data <- data %>% group_by(serves_id) %>%
+  mutate(row = row_number())
+(answer <- data %>% 
+    pivot_wider(names_from = status, values_from = servise_date,values_fill=ymd(today())) %>%
+    mutate(diff_time = as.numeric(o-r)) %>%
+    group_by(serves_id) %>%
+    summarise(servise_days = sum(diff_time))
+) 
+  
 ```
 
